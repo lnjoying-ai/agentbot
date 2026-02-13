@@ -1,7 +1,10 @@
 package com.agentbot.gateway;
 
+import com.agentbot.AgentbotApplication;
 import com.agentbot.config.AgentbotProperties;
+import com.agentbot.core.agent.DefaultAgentRuntime;
 import com.agentbot.core.channel.ChannelManager;
+
 import com.agentbot.core.ops.LogEntry;
 import com.agentbot.core.ops.LogService;
 import com.agentbot.core.workspace.WorkspaceInitializer;
@@ -33,8 +36,9 @@ public class OpsController {
   @GetMapping("/status")
   public Map<String, Object> status() {
     List<String> channels = channelManager.status().keySet().stream().sorted().collect(Collectors.toList());
-    long uptimeMillis = System.currentTimeMillis() - START_TIME;
+    long uptimeMillis = System.currentTimeMillis() - AgentbotApplication.START_TIME;
     return Map.of(
+
         "status", "ok",
         "uptimeMillis", uptimeMillis,
         "toolCalls", DefaultAgentRuntime.getTotalToolCalls(),

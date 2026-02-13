@@ -133,7 +133,9 @@ public class DefaultAgentRuntime implements AgentRuntime {
 
       if (parallelTools) {
         for (Map<String, Object> toolCall : toolCalls) {
+          totalToolCalls++;
           String toolName = String.valueOf(toolCall.get("name"));
+
           String rawArgs = String.valueOf(toolCall.get("arguments"));
           Map<String, Object> args = toolCallParser.parseArguments(rawArgs);
           futures.add(CompletableFuture.supplyAsync(() -> tools.execute(toolName, args), toolExecutor));
@@ -149,7 +151,9 @@ public class DefaultAgentRuntime implements AgentRuntime {
         if (parallelTools) {
           result = futures.get(i).join();
         } else {
+          totalToolCalls++;
           String rawArgs = String.valueOf(toolCall.get("arguments"));
+
           Map<String, Object> args = toolCallParser.parseArguments(rawArgs);
           result = tools.execute(toolName, args);
         }

@@ -1,0 +1,49 @@
+agentbot:
+  configFile: "agentbot-config.json"
+  channels:
+    telegram:
+      enabled: true
+      token: ""
+      pollSeconds: 2
+    whatsapp:
+      enabled: false
+      bridgeUrl: "ws://127.0.0.1:3001"
+    wechat:
+      enabled: false
+      appId: ""
+      appSecret: ""
+      token: ""
+      aesKey: ""
+  heartbeat:
+    enabled: false
+    intervalSeconds: 60
+  cron:
+    enabled: false
+    defaultIntervalSeconds: 3600
+    defaultPrompt: ""
+  ops:
+    logBufferSize: 200
+  llm:
+    provider: "kimi"
+    apiKey: ""
+    baseUrl: "https://api.moonshot.cn/v1"
+    model: "kimi-k2.5"
+    temperature: 1
+    fallbackOrder: "openai,openrouter,glm,kimi"
+    maxToolRounds: 20
+    parallelTools: true
+    toolParallelism: 4
+    openrouter:
+      apiKey: ""
+      baseUrl: "https://openrouter.ai/api/v1"
+      model: ""
+    glm:
+      apiKey: ""
+      baseUrl: "https://open.bigmodel.cn/api/paas/v4"
+      model: ""
+    kimi:
+      apiKey: ""
+      baseUrl: "https://api.moonshot.cn/v1"
+      model: "kimi-k2.5"
+server:
+  port: 8080

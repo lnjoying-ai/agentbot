@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  agentbot:
+    build: .
+    image: agentbot:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - AGENTBOT_CONFIG=/app/config/agentbot.yml
+    volumes:
+      - ./workspace:/app/workspace
+      - ./config:/app/config
+    restart: unless-stopped
+

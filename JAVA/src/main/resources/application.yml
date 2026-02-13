@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: agentbot
+  config:
+    import: "optional:file:${AGENTBOT_CONFIG:./config/agentbot.yml}"
+
+
+
+
+

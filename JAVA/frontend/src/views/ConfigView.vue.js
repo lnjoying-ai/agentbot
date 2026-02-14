@@ -1,10 +1,16 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
-import { reactive } from "vue";
+import { reactive, onMounted } from "vue";
 import { useConfigStore } from "../store/config";
 const config = useConfigStore();
 const draft = reactive({ ...config.state });
-const save = () => {
-    config.update({ ...draft });
+onMounted(async () => {
+    await config.fetch();
+    Object.assign(draft, config.state);
+});
+const save = async () => {
+    Object.assign(config.state, draft);
+    await config.save();
+    alert("配置已保存并同步至服务器");
 };
 const reset = () => {
     config.reset();
@@ -31,7 +37,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "http://localhost:8080",
+    placeholder: "https://api.openai.com/v1",
 });
 (__VLS_ctx.draft.apiBaseUrl);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({

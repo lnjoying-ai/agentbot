@@ -8,12 +8,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SubAgentManager {
   private final Map<String, CompletableFuture<String>> tasks = new ConcurrentHashMap<>();
 
-  public String spawn(String input) {
+  public String spawn(String task, String label, String originChannel, String originChatId) {
     String taskId = UUID.randomUUID().toString();
-    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> "sub-agent result: " + input);
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> "sub-agent result for [" + label + "]: " + task);
     tasks.put(taskId, future);
     return taskId;
   }
+
 
   public CompletableFuture<String> getResult(String taskId) {
     return tasks.get(taskId);

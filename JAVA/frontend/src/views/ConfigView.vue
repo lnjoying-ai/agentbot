@@ -6,8 +6,9 @@
       <div class="form-grid">
         <div class="form-field">
           <label>API Base URL</label>
-          <input v-model="draft.apiBaseUrl" placeholder="http://localhost:8080" />
+          <input v-model="draft.apiBaseUrl" placeholder="https://api.openai.com/v1" />
         </div>
+
         <div class="form-field">
           <label>默认 API Key (通用)</label>
           <input v-model="draft.apiKey" type="password" placeholder="sk-..." />
@@ -87,9 +88,10 @@
     <div class="card">
       <h3>保存配置</h3>
       <div style="color: var(--muted); font-size: 13px">
-        配置将同步至后端服务 (`agentbot-config.json`)。敏感信息在加载时会被掩码处理。
+        配置将直接同步至后端配置文件 (`agentbot.yml`)。敏感信息在加载时会被掩码处理。
       </div>
       <div class="config-actions">
+
 
         <button class="button" @click="save">保存</button>
         <button class="button secondary" @click="reset">重置默认</button>
@@ -99,15 +101,24 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
+import { reactive, onMounted } from "vue";
 import { useConfigStore } from "../store/config";
 
 const config = useConfigStore();
 const draft = reactive({ ...config.state });
 
-const save = () => {
-  config.update({ ...draft });
+onMounted(async () => {
+  await config.fetch();
+  Object.assign(draft, config.state);
+});
+
+
+const save = async () => {
+  Object.assign(config.state, draft);
+  await config.save();
+  alert("配置已保存并同步至服务器");
 };
+
 
 const reset = () => {
   config.reset();

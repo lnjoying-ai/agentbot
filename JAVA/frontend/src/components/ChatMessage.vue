@@ -17,8 +17,10 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
 import type { ChatMessage } from "../types";
+import { useConfigStore } from "../store/config";
 
 const props = defineProps<{ message: ChatMessage }>();
+const { state: config } = useConfigStore();
 
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
@@ -29,7 +31,19 @@ const roleLabel = computed(() => {
 });
 
 const renderedContent = computed(() => {
-  const rawHtml = marked.parse(props.message.content || "") as string;
+  let content = props.message.content || "";
+  
+  // Convert absolute workspace paths to relative URLs if possible
+  if (config.workspaceDir) {
+    // Escape backslashes for regex and handle both slash types
+    const escapedDir = config.workspaceDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedDir.replace(/\\\\/g, '[\\\\/]') + '[\\\\/]([\\w\\.-]+\\.(png|jpg|jpeg|gif|webp))', 'gi');
+    content = content.replace(regex, (match, filename) => {
+      return `![${filename}](/workspace/${filename})`;
+    });
+  }
+  
+  const rawHtml = marked.parse(content) as string;
   return DOMPurify.sanitize(rawHtml);
 });
 </script>
@@ -96,5 +110,28 @@ const renderedContent = computed(() => {
   color: var(--muted);
   border-left: 0.25em solid var(--border);
   margin: 0 0 12px 0;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.markdown-body :deep(img:hover) {
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 允许点击图片放大查看全文 */
+.markdown-body :deep(img:active) {
+  transform: scale(1.5);
+  z-index: 100;
+  position: relative;
 }
 </style>

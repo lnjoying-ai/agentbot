@@ -12,9 +12,7 @@ public class AgentbotProperties {
   private final Heartbeat heartbeat = new Heartbeat();
   private final Cron cron = new Cron();
   private final Ops ops = new Ops();
-
-
-
+  private final Search search = new Search();
 
 
 
@@ -61,6 +59,10 @@ public class AgentbotProperties {
 
   public Ops getOps() {
     return ops;
+  }
+
+  public Search getSearch() {
+    return search;
   }
 
 
@@ -186,6 +188,7 @@ public class AgentbotProperties {
   public static class Llm {
     private String provider = "openai";
     private String apiKey = "";
+    private String apiBaseUrl = "https://api.openai.com/v1";
     private String baseUrl = "https://api.openai.com/v1";
     private String model = "gpt-4o-mini";
     private double temperature = 0.2;
@@ -214,13 +217,24 @@ public class AgentbotProperties {
       this.apiKey = apiKey;
     }
 
+    public String getApiBaseUrl() {
+      return apiBaseUrl != null && !apiBaseUrl.equals("https://api.openai.com/v1") ? apiBaseUrl : baseUrl;
+    }
+
+    public void setApiBaseUrl(String apiBaseUrl) {
+      this.apiBaseUrl = apiBaseUrl;
+      this.baseUrl = apiBaseUrl;
+    }
+
     public String getBaseUrl() {
       return baseUrl;
     }
 
     public void setBaseUrl(String baseUrl) {
       this.baseUrl = baseUrl;
+      this.apiBaseUrl = baseUrl;
     }
+
 
     public String getModel() {
       return model;
@@ -347,7 +361,39 @@ public class AgentbotProperties {
     }
   }
 
+  public static class Search {
+    private String type = "bocha";
+    private String braveApiKey = "";
+    private String bochaApiKey = "";
+
+    public String getType() {
+      return type;
+    }
+
+    public void setType(String type) {
+      this.type = type;
+    }
+
+    public String getBraveApiKey() {
+      return braveApiKey;
+    }
+
+    public void setBraveApiKey(String braveApiKey) {
+      this.braveApiKey = braveApiKey;
+    }
+
+    public String getBochaApiKey() {
+      return bochaApiKey;
+    }
+
+    public void setBochaApiKey(String bochaApiKey) {
+      this.bochaApiKey = bochaApiKey;
+    }
+  }
+
+
   public static class Provider {
+
 
 
     private String apiKey = "";

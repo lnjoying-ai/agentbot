@@ -7,6 +7,7 @@ import com.agentbot.core.model.LLMProvider;
 import com.agentbot.core.model.LLMResponse;
 import com.agentbot.core.model.ToolCallParser;
 import com.agentbot.core.session.SessionService;
+import com.agentbot.core.skills.Skill;
 import com.agentbot.core.tools.ToolExecutionResult;
 import com.agentbot.core.tools.ToolRegistry;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class DefaultAgentRuntime implements AgentRuntime {
   private static final Logger log = LoggerFactory.getLogger(DefaultAgentRuntime.class);
@@ -31,6 +33,7 @@ public class DefaultAgentRuntime implements AgentRuntime {
   private final ToolCallParser toolCallParser;
   private final SessionService sessionService;
   private final MemoryService memoryService;
+  private final List<Skill> skills;
   private final int maxToolRounds;
   private final boolean parallelTools;
   private final ExecutorService toolExecutor;
@@ -41,6 +44,7 @@ public class DefaultAgentRuntime implements AgentRuntime {
       ToolCallParser toolCallParser,
       SessionService sessionService,
       MemoryService memoryService,
+      List<Skill> skills,
       int maxToolRounds,
       boolean parallelTools,
       int toolParallelism
@@ -50,6 +54,7 @@ public class DefaultAgentRuntime implements AgentRuntime {
     this.toolCallParser = toolCallParser;
     this.sessionService = sessionService;
     this.memoryService = memoryService;
+    this.skills = skills;
     this.maxToolRounds = Math.max(1, maxToolRounds);
     this.parallelTools = parallelTools;
     int parallelism = Math.max(1, toolParallelism);
@@ -64,10 +69,26 @@ public class DefaultAgentRuntime implements AgentRuntime {
     sessionService.appendUserMessage(sessionKey, message.getContent());
 
     List<Map<String, Object>> messages = new ArrayList<>();
+    
+    // Construct System Prompt from Memory and Skills
+    StringBuilder systemPrompt = new StringBuilder();
     List<String> memory = memoryService.loadContext();
     if (!memory.isEmpty()) {
-      messages.add(Map.of("role", "system", "content", String.join("\n", memory)));
+      systemPrompt.append("## Context from Memory\n")
+                  .append(String.join("\n", memory))
+                  .append("\n\n");
     }
+    
+    if (!skills.isEmpty()) {
+      systemPrompt.append("## Available Skills and Instructions\n")
+                  .append(skills.stream().map(Skill::toString).collect(Collectors.joining("\n")))
+                  .append("\n");
+    }
+
+    if (systemPrompt.length() > 0) {
+      messages.add(Map.of("role", "system", "content", systemPrompt.toString()));
+    }
+    
     sessionService.getRecent(sessionKey, 20).forEach(entry -> {
         String role = entry.getRole();
         String content = entry.getContent();
@@ -108,9 +129,6 @@ public class DefaultAgentRuntime implements AgentRuntime {
       // Kimi-k2.5 and other thinking models require reasoning_content to be present in history, 
       // even if it's an empty string, when tool_calls are present and thinking is enabled.
       assistantMessage.put("reasoning_content", response.getReasoningContent() == null ? "" : response.getReasoningContent());
-
-
-
       
       List<Map<String, Object>> toolCallsForLlm = new ArrayList<>();
       for (Map<String, Object> tc : response.getToolCalls()) {
@@ -125,8 +143,6 @@ public class DefaultAgentRuntime implements AgentRuntime {
       }
       assistantMessage.put("tool_calls", toolCallsForLlm);
       messages.add(assistantMessage);
-
-
 
       List<Map<String, Object>> toolCalls = response.getToolCalls();
       List<CompletableFuture<ToolExecutionResult>> futures = new ArrayList<>();
@@ -172,7 +188,6 @@ public class DefaultAgentRuntime implements AgentRuntime {
     }
 
     String content = response.getContent();
-
 
     sessionService.appendAssistantMessage(sessionKey, content);
     return new OutboundMessage(message.getChannel(), message.getChatId(), content);

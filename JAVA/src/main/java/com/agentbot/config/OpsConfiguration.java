@@ -6,6 +6,7 @@ import com.agentbot.core.ops.LogEntry;
 import com.agentbot.core.ops.LogService;
 import com.agentbot.core.workspace.WorkspaceInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,10 +21,14 @@ public class OpsConfiguration {
   }
 
   @Bean
-  public ConfigStore configStore(ObjectMapper mapper, AgentbotProperties properties) {
-    Path path = Path.of(properties.getWorkspaceDir()).resolve(properties.getConfigFile());
-    return new ConfigStore(mapper, path);
+  public ConfigStore configStore(AgentbotProperties properties) {
+    ObjectMapper yamlMapper = new YAMLMapper();
+    String env = System.getenv("AGENTBOT_CONFIG");
+    Path path = (env != null && !env.isBlank()) ? Path.of(env) : Path.of("config", "agentbot.yml");
+    return new ConfigStore(yamlMapper, path);
   }
+
+
 
   @Bean
   public WorkspaceInitializer workspaceInitializer(AgentbotProperties properties) {

@@ -3,7 +3,6 @@ package com.agentbot.gateway;
 import com.agentbot.core.agent.AgentRuntime;
 import com.agentbot.core.bus.events.InboundMessage;
 import com.agentbot.core.bus.events.OutboundMessage;
-import com.agentbot.core.session.SessionMessage;
 import com.agentbot.core.session.SessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,9 +10,9 @@ import org.springframework.web.bind.annotation.*;
 
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
+
 @RequestMapping("/api/chat")
 public class ChatController {
   private static final Logger log = LoggerFactory.getLogger(ChatController.class);

@@ -48,11 +48,17 @@ public class ConfigController {
   private Map<String, Object> maskSecrets(AgentbotProperties props) {
     Map<String, Object> llm = new HashMap<>();
     llm.put("provider", props.getLlm().getProvider());
+    llm.put("apiBaseUrl", props.getLlm().getApiBaseUrl());
     llm.put("baseUrl", props.getLlm().getBaseUrl());
     llm.put("model", props.getLlm().getModel());
     llm.put("temperature", props.getLlm().getTemperature());
+
     llm.put("fallbackOrder", props.getLlm().getFallbackOrder());
+    llm.put("maxToolRounds", props.getLlm().getMaxToolRounds());
+    llm.put("parallelTools", props.getLlm().isParallelTools());
+    llm.put("toolParallelism", props.getLlm().getToolParallelism());
     llm.put("apiKey", mask(props.getLlm().getApiKey()));
+
     llm.put("openrouterKey", mask(props.getLlm().getOpenrouter().getApiKey()));
     llm.put("glmKey", mask(props.getLlm().getGlm().getApiKey()));
     llm.put("kimiKey", mask(props.getLlm().getKimi().getApiKey()));

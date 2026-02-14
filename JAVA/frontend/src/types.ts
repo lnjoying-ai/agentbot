@@ -28,6 +28,7 @@ export interface ConfigState {
   telegramToken: string;
   whatsappBridgeUrl: string;
   wechatWebhook: string;
+  workspaceDir?: string;
   openrouterKey?: string;
   glmKey?: string;
   kimiKey?: string;

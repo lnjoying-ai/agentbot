@@ -1,11 +1,15 @@
 package com.agentbot.core.tools;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ToolRegistry {
+  private static final Logger log = LoggerFactory.getLogger(ToolRegistry.class);
   private final Map<String, Tool> tools = new HashMap<>();
   private final Map<String, ToolDefinition> definitions = new HashMap<>();
 
@@ -14,7 +18,10 @@ public class ToolRegistry {
     tools.put(tool.name(), tool);
     if (tool instanceof ToolWithDefinition withDefinition) {
       ToolDefinition definition = withDefinition.definition();
-      if (definition != null) definitions.put(definition.getName(), definition);
+      if (definition != null) {
+        log.debug("Registered tool: {}", definition.getName());
+        definitions.put(definition.getName(), definition);
+      }
     }
   }
 
@@ -36,9 +43,27 @@ public class ToolRegistry {
   public ToolExecutionResult execute(String name, Map<String, Object> args) {
     Tool tool = tools.get(name);
     if (tool == null) {
+      log.warn("Tool execution failed: Tool '{}' not found", name);
       return new ToolExecutionResult(false, "Tool not found: " + name);
     }
-    return tool.execute(args);
+    
+    log.info("Tool starting: name={}, args={}", name, args);
+    long startTime = System.currentTimeMillis();
+    try {
+      ToolExecutionResult result = tool.execute(args);
+      long duration = System.currentTimeMillis() - startTime;
+      
+      if (result.isOk()) {
+        log.info("Tool completed: name={}, duration={}ms, success=true", name, duration);
+      } else {
+        log.warn("Tool completed: name={}, duration={}ms, success=false, error={}", name, duration, result.getOutput());
+      }
+      return result;
+    } catch (Exception e) {
+      long duration = System.currentTimeMillis() - startTime;
+      log.error("Tool crash: name={}, duration={}ms, error={}", name, duration, e.getMessage(), e);
+      return new ToolExecutionResult(false, "Internal tool error: " + e.getMessage());
+    }
   }
 }
 

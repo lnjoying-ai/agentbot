@@ -5,6 +5,7 @@ import com.agentbot.core.agent.AgentRouter;
 import com.agentbot.core.agent.AgentRuntime;
 import com.agentbot.core.agent.DefaultAgentRouter;
 import com.agentbot.core.agent.DefaultAgentRuntime;
+import com.agentbot.core.agent.SubAgentManager;
 import com.agentbot.core.bus.MessageBus;
 import com.agentbot.core.memory.MemorySearch;
 import com.agentbot.core.memory.MemoryService;
@@ -13,23 +14,35 @@ import com.agentbot.core.model.FallbackLlmProvider;
 import com.agentbot.core.model.LLMProvider;
 import com.agentbot.core.model.OpenAiCompatibleProvider;
 import com.agentbot.core.model.ToolCallParser;
-
 import com.agentbot.core.session.JsonlSessionStore;
 import com.agentbot.core.session.SessionService;
 import com.agentbot.core.session.SessionStore;
+import com.agentbot.core.skills.Skill;
+import com.agentbot.core.skills.SkillLoader;
 import com.agentbot.core.tools.ToolRegistry;
-import com.agentbot.core.tools.impl.EchoTool;
-import com.agentbot.core.tools.impl.TimeTool;
+import com.agentbot.core.tools.impl.*;
 import org.springframework.context.annotation.Bean;
+
 import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 
 @Configuration
 public class AgentConfiguration {
+
+  @Bean
+  public SkillLoader skillLoader(AgentbotProperties properties) {
+    return new SkillLoader(Path.of(properties.getWorkspaceDir()).resolve("skills"));
+  }
+
+  @Bean
+  public List<Skill> loadedSkills(SkillLoader loader) {
+    return loader.loadSkills();
+  }
 
   @Bean
   public SessionStore sessionStore(AgentbotProperties properties) {
@@ -57,14 +70,36 @@ public class AgentConfiguration {
   }
 
   @Bean
-  public ToolRegistry toolRegistry(MemorySearch memorySearch, MemoryStore memoryStore) {
+  public SubAgentManager subAgentManager() {
+    return new SubAgentManager();
+  }
+
+  @Bean
+  public ToolRegistry toolRegistry(MemorySearch memorySearch, MemoryStore memoryStore, MessageBus messageBus, SubAgentManager subAgentManager, AgentbotProperties properties) {
     ToolRegistry registry = new ToolRegistry();
     registry.register(new EchoTool());
     registry.register(new TimeTool());
-    registry.register(new com.agentbot.core.tools.impl.MemorySearchTool(memorySearch));
-    registry.register(new com.agentbot.core.tools.impl.MemoryGetTool(memoryStore));
+    registry.register(new MemorySearchTool(memorySearch));
+    registry.register(new MemoryGetTool(memoryStore));
+    registry.register(new ShellTool());
+    registry.register(new FileReadTool());
+    registry.register(new FileWriteTool());
+    
+    AgentbotProperties.Search searchConfig = properties.getSearch();
+    if ("brave".equalsIgnoreCase(searchConfig.getType())) {
+      registry.register(new BraveSearchTool(searchConfig.getBraveApiKey()));
+    } else {
+      registry.register(new BochaSearchTool(searchConfig.getBochaApiKey()));
+    }
+
+    registry.register(new MessageTool(messageBus));
+
+    registry.register(new SpawnTool(subAgentManager));
+    registry.register(new BrowserTool(Path.of(properties.getWorkspaceDir())));
     return registry;
   }
+
+
 
 
   @Bean
@@ -150,6 +185,7 @@ public class AgentConfiguration {
       ToolCallParser toolCallParser,
       SessionService sessionService,
       MemoryService memoryService,
+      List<Skill> skills,
       AgentbotProperties properties
   ) {
     AgentbotProperties.Llm llm = properties.getLlm();
@@ -159,6 +195,7 @@ public class AgentConfiguration {
         toolCallParser,
         sessionService,
         memoryService,
+        skills,
         llm.getMaxToolRounds(),
         llm.isParallelTools(),
         llm.getToolParallelism()

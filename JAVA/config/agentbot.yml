@@ -1,5 +1,7 @@
 agentbot:
-  configFile: "agentbot-config.json"
+  workspaceDir: "./workspace"
+  configFile: "agentbot-config.yml"
+  
   channels:
     telegram:
       enabled: true
@@ -23,6 +25,10 @@ agentbot:
     defaultPrompt: ""
   ops:
     logBufferSize: 200
+  search:
+    type: "bocha"
+    braveApiKey: ""
+    bochaApiKey: ""
   llm:
     provider: "kimi"
     apiKey: ""
@@ -47,3 +53,12 @@ agentbot:
       model: "kimi-k2.5"
 server:
   port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.agentbot: DEBUG
+    org.apache.hc.client5.http.wire: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
+
+

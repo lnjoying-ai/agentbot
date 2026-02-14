@@ -23,8 +23,9 @@ async function sendUserMessage(text: string) {
   messagesList.value.push(userMsg);
 
   try {
-    const baseUrl = config.state.apiBaseUrl || "http://localhost:8080";
-    const response = await fetch(`${baseUrl}/api/chat/send`, {
+    const response = await fetch(`${window.location.origin}/api/chat/send`, {
+
+
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -26,7 +26,8 @@ public class ConfigStore {
       return Collections.emptyMap();
     }
     try {
-      return mapper.readValue(configPath.toFile(), new TypeReference<Map<String, Object>>() {});
+      Map<String, Object> fullConfig = mapper.readValue(configPath.toFile(), new TypeReference<Map<String, Object>>() {});
+      return (Map<String, Object>) fullConfig.getOrDefault("agentbot", Collections.emptyMap());
     } catch (Exception ignored) {
       return Collections.emptyMap();
     }
@@ -35,9 +36,17 @@ public class ConfigStore {
   public void save(Map<String, Object> payload) {
     try {
       Files.createDirectories(configPath.getParent());
-      mapper.writerWithDefaultPrettyPrinter().writeValue(configPath.toFile(), payload);
+      Map<String, Object> fullConfig;
+      if (Files.exists(configPath)) {
+        fullConfig = mapper.readValue(configPath.toFile(), new TypeReference<Map<String, Object>>() {});
+      } else {
+        fullConfig = new java.util.LinkedHashMap<>();
+      }
+      fullConfig.put("agentbot", payload);
+      mapper.writerWithDefaultPrettyPrinter().writeValue(configPath.toFile(), fullConfig);
     } catch (Exception ignored) {
       // ignore
     }
   }
+
 }

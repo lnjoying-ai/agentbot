@@ -3,7 +3,9 @@ import { computed } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
+import { useConfigStore } from "../store/config";
 const props = defineProps();
+const { state: config } = useConfigStore();
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
     if (props.message.role === "user")
@@ -15,13 +17,26 @@ const roleLabel = computed(() => {
     return "系统";
 });
 const renderedContent = computed(() => {
-    const rawHtml = marked.parse(props.message.content || "");
+    let content = props.message.content || "";
+    // Convert absolute workspace paths to relative URLs if possible
+    if (config.workspaceDir) {
+        // Escape backslashes for regex and handle both slash types
+        const escapedDir = config.workspaceDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escapedDir.replace(/\\\\/g, '[\\\\/]') + '[\\\\/]([\\w\\.-]+\\.(png|jpg|jpeg|gif|webp))', 'gi');
+        content = content.replace(regex, (match, filename) => {
+            return `![${filename}](/workspace/${filename})`;
+        });
+    }
+    const rawHtml = marked.parse(content);
     return DOMPurify.sanitize(rawHtml);
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;

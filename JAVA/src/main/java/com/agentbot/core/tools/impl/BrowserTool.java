@@ -1,129 +1,306 @@
 package com.agentbot.core.tools.impl;
 
+import com.agentbot.core.browser.BrowserProxyClient;
+import com.agentbot.core.browser.BrowserService;
 import com.agentbot.core.tools.ToolDefinition;
 import com.agentbot.core.tools.ToolExecutionResult;
 import com.agentbot.core.tools.ToolWithDefinition;
-import com.microsoft.playwright.*;
 
-import java.nio.file.Path;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * Browser Control Tool implemented with Playwright.
- * Allows navigation, interaction, and data extraction from web pages.
+ * Browser Control Tool backed by BrowserService.
+ * Supports profile-aware tabs, snapshot + act, and basic navigation.
  */
 public class BrowserTool implements ToolWithDefinition {
-    private static Playwright playwright;
-    private static Browser browser;
-    private static BrowserContext context;
-    private static Page page;
+  private final BrowserService browserService;
+  private final ObjectMapper mapper = new ObjectMapper();
 
-    private final Path workspaceDir;
+  public BrowserTool(BrowserService browserService) {
+    this.browserService = browserService;
+  }
 
-    public BrowserTool(Path workspaceDir) {
-        this.workspaceDir = workspaceDir;
-    }
+  @Override
+  public String name() {
+    return "browser_control";
+  }
 
-    private synchronized void ensureInitialized() {
-        if (playwright == null) {
-            playwright = Playwright.create();
-            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions().setHeadless(true);
-            try {
-                browser = playwright.chromium().launch(options);
-            } catch (Exception e) {
-                // 如果启动失败（通常是没安装），则尝试自动安装
-                System.out.println("Browser not found or initialization failed. Attempting to install chromium...");
-                try {
-                    com.microsoft.playwright.CLI.main(new String[]{"install", "chromium"});
-                    browser = playwright.chromium().launch(options);
-                } catch (Exception installError) {
-                    throw new RuntimeException("Failed to auto-install Playwright browsers. Please run 'mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args=\"install chromium\"' manually.", installError);
-                }
-            }
-            context = browser.newContext();
-            page = context.newPage();
-        }
-    }
-
-    @Override
-    public String name() {
-        return "browser_control";
-    }
-
-    @Override
-    public ToolDefinition definition() {
-        return new ToolDefinition(
-            "browser_control",
-            "Control a Chrome browser to navigate, click, type, screenshot, and extract content. Maintains session between calls.",
-            Map.of(
-                "type", "object",
-                "properties", Map.of(
-                    "action", Map.of(
-                        "type", "string",
-                        "enum", List.of("goto", "click", "type", "screenshot", "content", "upload"),
-                        "description", "The action to perform"
+  @Override
+  public ToolDefinition definition() {
+    return new ToolDefinition(
+        "browser_control",
+        "Control the browser via the local browser control service (status/start/stop/tabs/open/snapshot/act/navigate/screenshot/content/upload).",
+        Map.of(
+            "type", "object",
+            "properties", Map.ofEntries(
+                Map.entry("action", Map.of(
+                    "type", "string",
+                    "enum", List.of(
+                        "status", "start", "stop", "profiles", "tabs", "open", "focus", "close",
+                        "snapshot", "act", "navigate", "goto", "click", "type", "screenshot", "content", "upload"
                     ),
-                    "url", Map.of("type", "string", "description", "The URL to navigate to (for 'goto')"),
-                    "selector", Map.of("type", "string", "description", "The CSS selector for the element (for 'click', 'type', 'upload')"),
-                    "text", Map.of("type", "string", "description", "The text to type (for 'type')"),
-                    "filePath", Map.of("type", "string", "description", "The local file path to upload (for 'upload')")
-                ),
-                "required", List.of("action")
-            )
-        );
-    }
+                    "description", "The action to perform"
+                )),
+                Map.entry("profile", Map.of("type", "string", "description", "Browser profile name")),
+                Map.entry("target", Map.of("type", "string", "description", "Target location: host|sandbox|node")),
+                Map.entry("targetId", Map.of("type", "string", "description", "Tab id")),
+                Map.entry("snapshotFormat", Map.of("type", "string", "description", "Snapshot format (ai/aria/role)")),
 
-    @Override
-    public ToolExecutionResult execute(Map<String, Object> args) {
-        ensureInitialized();
-        String action = (String) args.get("action");
-        try {
-            switch (action) {
-                case "goto":
-                    String url = (String) args.get("url");
-                    if (url == null) return new ToolExecutionResult(false, "URL is required for 'goto'");
-                    page.navigate(url);
-                    return new ToolExecutionResult(true, "Successfully navigated to " + url + "\nTitle: " + page.title());
+                Map.entry("url", Map.of("type", "string", "description", "Navigation URL")),
 
-                case "click":
-                    String clickSelector = (String) args.get("selector");
-                    if (clickSelector == null) return new ToolExecutionResult(false, "Selector is required for 'click'");
-                    page.click(clickSelector);
-                    return new ToolExecutionResult(true, "Successfully clicked element: " + clickSelector);
+                Map.entry("targetUrl", Map.of("type", "string", "description", "Navigation URL")),
+                Map.entry("selector", Map.of("type", "string", "description", "CSS selector")),
+                Map.entry("text", Map.of("type", "string", "description", "Input text")),
+                Map.entry("filePath", Map.of("type", "string", "description", "Local file path to upload")),
+                Map.entry("ref", Map.of("type", "string", "description", "Snapshot ref for act/upload")),
+                Map.entry("kind", Map.of("type", "string", "description", "Act kind (click/type/hover/press)")),
+                Map.entry("key", Map.of("type", "string", "description", "Key name for press" ))
+            ),
+            "required", List.of("action")
+        )
 
-                case "type":
-                    String typeSelector = (String) args.get("selector");
-                    String text = (String) args.get("text");
-                    if (typeSelector == null || text == null) return new ToolExecutionResult(false, "Selector and text are required for 'type'");
-                    page.fill(typeSelector, text);
-                    return new ToolExecutionResult(true, "Successfully typed text in: " + typeSelector);
+    );
+  }
 
-                case "screenshot":
-                    String filename = "screenshot-" + UUID.randomUUID() + ".png";
-                    Path path = workspaceDir.resolve(filename);
-                    page.screenshot(new Page.ScreenshotOptions().setPath(path));
-                    return new ToolExecutionResult(true, "Screenshot saved to workspace.\n\n![Screenshot](/workspace/" + filename + ")");
+  @Override
+  public ToolExecutionResult execute(Map<String, Object> args) {
+    String action = asString(args.get("action"));
+    String profile = asString(args.get("profile"));
+    String target = normalizeTarget(asString(args.get("target")));
+    String targetId = asString(args.get("targetId"));
 
-                case "content":
-                    // Return a summary of the page content (text-only is often better for LLM)
-                    String pageText = page.innerText("body");
-                    String pageTitle = page.title();
-                    return new ToolExecutionResult(true, "Page Title: " + pageTitle + "\n\nContent:\n" + pageText);
+    try {
+      if (!"host".equals(target)) {
+        return executeViaProxy(target, action, profile, targetId, args);
+      }
 
-                case "upload":
-                    String uploadSelector = (String) args.get("selector");
-                    String uploadPath = (String) args.get("filePath");
-                    if (uploadSelector == null || uploadPath == null) return new ToolExecutionResult(false, "Selector and filePath are required for 'upload'");
-                    page.setInputFiles(uploadSelector, Path.of(uploadPath));
-                    return new ToolExecutionResult(true, "Successfully staged file for upload: " + uploadPath);
-
-                default:
-                    return new ToolExecutionResult(false, "Unsupported action: " + action);
-            }
-        } catch (Exception e) {
-            return new ToolExecutionResult(false, "Browser error (" + action + "): " + e.getMessage());
+      switch (action) {
+        case "status":
+        case "profiles":
+          return new ToolExecutionResult(true, toJson(browserService.status()));
+        case "start":
+          browserService.startProfile(profile);
+          return new ToolExecutionResult(true, toJson(browserService.status()));
+        case "stop":
+          browserService.stopProfile(profile);
+          return new ToolExecutionResult(true, toJson(browserService.status()));
+        case "tabs":
+          return new ToolExecutionResult(true, toJson(Map.of("tabs", browserService.listTabs(profile))));
+        case "open": {
+          String url = firstNonBlank(asString(args.get("targetUrl")), asString(args.get("url")));
+          return new ToolExecutionResult(true, toJson(browserService.openTab(profile, url)));
         }
+        case "focus": {
+          if (isBlank(targetId)) return new ToolExecutionResult(false, "targetId required");
+          browserService.focusTab(profile, targetId);
+          return new ToolExecutionResult(true, "Focused tab: " + targetId);
+        }
+        case "close": {
+          if (isBlank(targetId)) return new ToolExecutionResult(false, "targetId required");
+          browserService.closeTab(profile, targetId);
+          return new ToolExecutionResult(true, "Closed tab: " + targetId);
+        }
+        case "snapshot": {
+          String snapshotFormat = asString(args.get("snapshotFormat"));
+          var snapshot = browserService.snapshot(profile, targetId, snapshotFormat);
+          return new ToolExecutionResult(true, snapshot.snapshot());
+        }
+
+        case "act": {
+          String ref = asString(args.get("ref"));
+          String kind = asString(args.get("kind"));
+          String text = asString(args.get("text"));
+          String key = asString(args.get("key"));
+          var result = browserService.act(profile, targetId, ref, kind, text, key);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "navigate":
+        case "goto": {
+          String url = firstNonBlank(asString(args.get("targetUrl")), asString(args.get("url")));
+          var result = browserService.navigate(profile, targetId, url);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "click": {
+          String selector = asString(args.get("selector"));
+          var result = browserService.click(profile, targetId, selector);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "type": {
+          String selector = asString(args.get("selector"));
+          String text = asString(args.get("text"));
+          var result = browserService.type(profile, targetId, selector, text);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "screenshot": {
+          var result = browserService.screenshot(profile, targetId);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "content": {
+          var result = browserService.content(profile, targetId);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        case "upload": {
+          String selector = asString(args.get("selector"));
+          String filePath = asString(args.get("filePath"));
+          String ref = asString(args.get("ref"));
+          var result = browserService.upload(profile, targetId, selector, filePath, ref);
+          return new ToolExecutionResult(result.ok(), result.message());
+        }
+        default:
+          return new ToolExecutionResult(false, "Unsupported action: " + action);
+      }
+    } catch (Exception e) {
+      return new ToolExecutionResult(false, "Browser error (" + action + "): " + e.getMessage());
     }
+  }
+
+
+  @Override
+  public boolean requiresApproval(Map<String, Object> args) {
+    String action = asString(args == null ? null : args.get("action")).toLowerCase();
+    String target = normalizeTarget(asString(args == null ? null : args.get("target")));
+    if ("sandbox".equals(target) || "node".equals(target)) {
+      return true;
+    }
+    return action.equals("upload") || action.equals("screenshot") || action.equals("content");
+  }
+
+  private ToolExecutionResult executeViaProxy(String target, String action, String profile, String targetId, Map<String, Object> args) {
+    BrowserProxyClient client = new BrowserProxyClient(resolveProxyBaseUrl(target));
+    switch (action) {
+      case "status":
+      case "profiles":
+        return new ToolExecutionResult(true, client.status());
+      case "start":
+        return new ToolExecutionResult(true, client.start(profile));
+      case "stop":
+        return new ToolExecutionResult(true, client.stop(profile));
+      case "tabs":
+        return new ToolExecutionResult(true, client.tabs(profile));
+      case "open": {
+        String url = firstNonBlank(asString(args.get("targetUrl")), asString(args.get("url")));
+        return new ToolExecutionResult(true, client.open(profile, url));
+      }
+      case "focus": {
+        if (isBlank(targetId)) return new ToolExecutionResult(false, "targetId required");
+        return proxyResult(client.focus(profile, targetId));
+      }
+      case "close": {
+        if (isBlank(targetId)) return new ToolExecutionResult(false, "targetId required");
+        return proxyResult(client.close(profile, targetId));
+      }
+      case "snapshot": {
+        String snapshotFormat = asString(args.get("snapshotFormat"));
+        String body = client.snapshot(profile, targetId, snapshotFormat);
+        String snapshot = extractSnapshot(body);
+        return new ToolExecutionResult(true, snapshot.isBlank() ? body : snapshot);
+      }
+      case "act": {
+        String ref = asString(args.get("ref"));
+        String kind = asString(args.get("kind"));
+        String text = asString(args.get("text"));
+        String key = asString(args.get("key"));
+        return proxyResult(client.act(profile, targetId, ref, kind, text, key));
+      }
+      case "navigate":
+      case "goto": {
+        String url = firstNonBlank(asString(args.get("targetUrl")), asString(args.get("url")));
+        return proxyResult(client.navigate(profile, targetId, url));
+      }
+      case "click": {
+        String selector = asString(args.get("selector"));
+        return proxyResult(client.click(profile, targetId, selector));
+      }
+      case "type": {
+        String selector = asString(args.get("selector"));
+        String text = asString(args.get("text"));
+        return proxyResult(client.type(profile, targetId, selector, text));
+      }
+      case "screenshot": {
+        return proxyResult(client.screenshot(profile, targetId));
+      }
+      case "content": {
+        return proxyResult(client.content(profile, targetId));
+      }
+      case "upload": {
+        String selector = asString(args.get("selector"));
+        String filePath = asString(args.get("filePath"));
+        String ref = asString(args.get("ref"));
+        return proxyResult(client.upload(profile, targetId, selector, filePath, ref));
+      }
+      default:
+        return new ToolExecutionResult(false, "Unsupported action: " + action);
+    }
+  }
+
+  private ToolExecutionResult proxyResult(String body) {
+    try {
+      Map<?, ?> map = mapper.readValue(body, Map.class);
+      Object ok = map.get("ok");
+      Object message = map.get("message");
+      if (ok instanceof Boolean bool) {
+        return new ToolExecutionResult(bool, message == null ? body : String.valueOf(message));
+      }
+    } catch (Exception ignored) {
+    }
+    return new ToolExecutionResult(true, body);
+  }
+
+  private String extractSnapshot(String body) {
+    try {
+      Map<?, ?> map = mapper.readValue(body, Map.class);
+      Object snapshot = map.get("snapshot");
+      return snapshot == null ? "" : String.valueOf(snapshot);
+    } catch (Exception ignored) {
+      return "";
+    }
+  }
+
+  private String normalizeTarget(String target) {
+    String normalized = asString(target).trim().toLowerCase();
+    if (normalized.isBlank()) return "host";
+    if (normalized.equals("sandbox") || normalized.equals("node") || normalized.equals("host")) return normalized;
+    return "host";
+  }
+
+  private String resolveProxyBaseUrl(String target) {
+    if ("sandbox".equals(target)) {
+      String base = browserService.getSandboxBridgeUrl();
+      if (isBlank(base)) throw new RuntimeException("sandboxBridgeUrl is not configured");
+      return base;
+    }
+    if ("node".equals(target)) {
+      String base = browserService.getNodeBridgeUrl();
+      if (isBlank(base)) throw new RuntimeException("nodeBridgeUrl is not configured");
+      return base;
+    }
+    throw new RuntimeException("Unsupported target: " + target);
+  }
+
+  private String asString(Object value) {
+    return value == null ? "" : String.valueOf(value);
+  }
+
+  private boolean isBlank(String value) {
+
+    return value == null || value.trim().isEmpty();
+  }
+
+  private String firstNonBlank(String a, String b) {
+    if (!isBlank(a)) return a;
+    if (!isBlank(b)) return b;
+    return "";
+  }
+
+  private String toJson(Object value) {
+    try {
+      return mapper.writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      return String.valueOf(value);
+    }
+  }
 }

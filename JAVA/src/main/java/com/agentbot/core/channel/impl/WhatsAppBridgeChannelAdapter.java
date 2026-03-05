@@ -1,8 +1,8 @@
 package com.agentbot.core.channel.impl;
 
 import com.agentbot.config.AgentbotProperties;
-import com.agentbot.core.bus.MessageBus;
-import com.agentbot.core.bus.events.InboundMessage;
+import com.agentbot.core.bus.ExternalMessageBus;
+import com.agentbot.core.bus.MessageEnvelope;
 import com.agentbot.core.bus.events.OutboundMessage;
 import com.agentbot.core.channel.ChannelAdapter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,7 +14,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,18 +25,20 @@ import java.util.concurrent.TimeUnit;
 public class WhatsAppBridgeChannelAdapter implements ChannelAdapter {
   private static final Logger log = LoggerFactory.getLogger(WhatsAppBridgeChannelAdapter.class);
 
-  private final MessageBus messageBus;
+  private final ExternalMessageBus messageBus;
   private final AgentbotProperties.WhatsApp config;
   private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+
   private final ObjectMapper mapper = new ObjectMapper();
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
   private volatile WebSocket webSocket;
   private volatile boolean running = false;
 
-  public WhatsAppBridgeChannelAdapter(MessageBus messageBus, AgentbotProperties properties) {
+  public WhatsAppBridgeChannelAdapter(ExternalMessageBus messageBus, AgentbotProperties properties) {
     this.messageBus = messageBus;
     this.config = properties.getChannels().getWhatsapp();
   }
+
 
   @Override
   public String name() {
@@ -52,6 +56,7 @@ public class WhatsAppBridgeChannelAdapter implements ChannelAdapter {
       return;
     }
     running = true;
+    log.info("whatsapp channel started: bridgeUrl={}", config.getBridgeUrl());
     connect();
   }
 
@@ -62,21 +67,29 @@ public class WhatsAppBridgeChannelAdapter implements ChannelAdapter {
       webSocket.abort();
     }
     scheduler.shutdownNow();
+    log.info("whatsapp channel stopped");
   }
+
 
   @Override
   public void send(OutboundMessage message) {
     WebSocket ws = webSocket;
-    if (ws == null) return;
+    if (ws == null) {
+      log.warn("whatsapp bridge not connected, skip send: chatId={}", message.getChatId());
+      return;
+    }
     try {
       String payload = mapper.writeValueAsString(
           java.util.Map.of("type", "send", "to", message.getChatId(), "text", message.getContent())
       );
       ws.sendText(payload, true);
+      log.info("whatsapp send: chatId={} length={}", message.getChatId(),
+          message.getContent() == null ? 0 : message.getContent().length());
     } catch (Exception e) {
       log.warn("whatsapp send failed", e);
     }
   }
+
 
   private void connect() {
     if (!running) return;
@@ -95,8 +108,11 @@ public class WhatsAppBridgeChannelAdapter implements ChannelAdapter {
 
   private void scheduleReconnect() {
     if (!running) return;
-    scheduler.schedule(this::connect, 5, TimeUnit.SECONDS);
+    int delay = 5;
+    log.info("whatsapp bridge reconnect scheduled: delay={}s", delay);
+    scheduler.schedule(this::connect, delay, TimeUnit.SECONDS);
   }
+
 
   private class Listener implements WebSocket.Listener {
     @Override
@@ -139,12 +155,21 @@ public class WhatsAppBridgeChannelAdapter implements ChannelAdapter {
       if (chatId.isBlank()) chatId = sender;
       String text = root.path("text").asText("");
       if (!text.isBlank()) {
-        InboundMessage inbound = new InboundMessage("whatsapp", sender, chatId, text);
-        inbound.getMetadata().put("raw", root);
-        messageBus.publishInbound(inbound);
+        log.info("whatsapp inbound: chatId={} senderId={} length={}", chatId, sender, text.length());
+        String peerKind = chatId != null && chatId.endsWith("@g.us") ? "group" : "dm";
+        HashMap<String, Object> metadata = new HashMap<>();
+        metadata.put(MessageEnvelope.META_ACCOUNT_ID, "default");
+        metadata.put(MessageEnvelope.META_PEER_KIND, peerKind);
+        metadata.put(MessageEnvelope.META_PEER_ID, chatId);
+        metadata.put("raw", root);
+        MessageEnvelope inbound = MessageEnvelope.externalInbound("whatsapp", sender, chatId, text, metadata);
+        messageBus.publish(inbound);
+
+
       }
       return;
     }
+
     if ("status".equals(type)) {
       log.info("whatsapp status: {}", root.path("status").asText(""));
       return;

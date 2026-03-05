@@ -6,4 +6,9 @@ public interface Tool {
   String name();
 
   ToolExecutionResult execute(Map<String, Object> args);
+
+  default boolean requiresApproval(Map<String, Object> args) {
+    return false;
+  }
 }
+

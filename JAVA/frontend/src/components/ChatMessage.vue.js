@@ -3,9 +3,7 @@ import { computed } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
-import { useConfigStore } from "../store/config";
 const props = defineProps();
-const { state: config } = useConfigStore();
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
     if (props.message.role === "user")
@@ -17,18 +15,13 @@ const roleLabel = computed(() => {
     return "系统";
 });
 const renderedContent = computed(() => {
-    let content = props.message.content || "";
-    // Convert absolute workspace paths to relative URLs if possible
-    if (config.workspaceDir) {
-        // Escape backslashes for regex and handle both slash types
-        const escapedDir = config.workspaceDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(escapedDir.replace(/\\\\/g, '[\\\\/]') + '[\\\\/]([\\w\\.-]+\\.(png|jpg|jpeg|gif|webp))', 'gi');
-        content = content.replace(regex, (match, filename) => {
-            return `![${filename}](/workspace/${filename})`;
-        });
-    }
+    const content = props.message.content || "";
     const rawHtml = marked.parse(content);
     return DOMPurify.sanitize(rawHtml);
+});
+const hasContent = computed(() => {
+    const content = props.message.content || "";
+    return content.trim().length > 0;
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -61,10 +54,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.
 (__VLS_ctx.roleLabel);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
 (__VLS_ctx.message.timestamp);
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-    ...{ class: "markdown-body" },
-});
-__VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.renderedContent) }, null, null);
+if (__VLS_ctx.hasContent) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "markdown-body" },
+    });
+    __VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.renderedContent) }, null, null);
+}
 if (__VLS_ctx.message.toolResults?.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ style: {} },
@@ -93,6 +88,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             role: role,
             roleLabel: roleLabel,
             renderedContent: renderedContent,
+            hasContent: hasContent,
         };
     },
     __typeProps: {},

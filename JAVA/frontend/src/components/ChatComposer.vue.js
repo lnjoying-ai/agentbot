@@ -8,16 +8,27 @@ const handleSend = () => {
     emit("send", text.value.trim());
     text.value = "";
 };
+const onKeydown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        handleSend();
+    }
+};
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['chat-composer']} */ ;
+/** @type {__VLS_StyleScopedClasses['chat-composer']} */ ;
+// CSS variable injection 
+// CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "chat-composer" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea, __VLS_intrinsicElements.textarea)({
+    ...{ onKeydown: (__VLS_ctx.onKeydown) },
     value: (__VLS_ctx.text),
-    rows: "3",
+    rows: "4",
     placeholder: "输入指令或问题，支持多轮对话",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
@@ -33,6 +44,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         return {
             text: text,
             handleSend: handleSend,
+            onKeydown: onKeydown,
         };
     },
     __typeEmits: {},

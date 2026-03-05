@@ -4,6 +4,15 @@ spring:
   config:
     import: "optional:file:${AGENTBOT_CONFIG:./config/agentbot.yml}"
 
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+
+
 
 
 

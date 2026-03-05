@@ -1,24 +1,38 @@
 import { reactive, ref } from "vue";
-import type { MonitorStats } from "../types";
+import type { MonitorStats, OpsInitResult, OpsLogEntry } from "../types";
 import { getApiBaseUrl } from "./config";
 
 const health = ref<"ok" | "degraded" | "down">("ok");
+const logEntries = ref<OpsLogEntry[]>([]);
+const lastInit = ref<OpsInitResult | null>(null);
 
 const stats = reactive<MonitorStats>({
-  uptime: "2d 04:12",
-  activeSessions: 12,
-  toolCalls: 286,
-  queueDepth: 4,
-  errorRate: 0.7,
-  latencyP50: 380,
-  latencyP95: 920,
-  channelStatus: {
-    Telegram: "online",
-    WhatsApp: "degraded",
-    WeChat: "online"
-  },
-  model: "openai / gpt-4o-mini"
+  uptime: "0d 0h 0m",
+  activeSessions: 0,
+  toolCalls: 0,
+  queueDepth: 0,
+  errorRate: 0,
+  latencyP50: 0,
+  latencyP95: 0,
+  channelStatus: {},
+  model: "unknown",
+  status: "unknown",
+  workspace: "-",
+  heartbeat: { enabled: false, intervalSeconds: 0 },
+
+  cron: { enabled: false, defaultIntervalSeconds: 0 },
+  p2p: {
+    connectionsOpened: 0,
+    connectionsClosed: 0,
+    handshakesCompleted: 0,
+    messagesReceived: 0,
+    messagesSent: 0,
+    acks: 0,
+    nacks: 0,
+    retries: 0
+  }
 });
+
 
 async function refresh() {
   const baseUrl = getApiBaseUrl();
@@ -38,26 +52,40 @@ async function refresh() {
     const statusRes = await fetch(`${baseUrl}/api/ops/status`);
     if (statusRes.ok) {
       const sData = await statusRes.json();
-      // sData format: { status, workspace, configFile, channels: [], heartbeat: {}, cron: {}, llm: {} }
+      // sData format: { status, workspace, channels: [], heartbeat: {}, cron: {}, llm: {}, p2p: {} }
+      stats.status = sData.status || "unknown";
+      stats.workspace = sData.workspace || "-";
+      stats.heartbeat = sData.heartbeat || stats.heartbeat;
+
+      stats.cron = sData.cron || stats.cron;
+      stats.p2p = sData.p2p || stats.p2p;
+
       stats.channelStatus = {};
       if (Array.isArray(sData.channels)) {
         sData.channels.forEach((name: string) => {
           stats.channelStatus[name] = "online";
         });
       }
-      stats.model = `${sData.llm?.provider || "unknown"} / ${sData.llm?.model || "unknown"}`;
+      const provider = sData.llm?.currentProvider || sData.llm?.provider || "unknown";
+      const model = sData.llm?.currentModel || sData.llm?.model || "unknown";
+      let modelLabel = `${provider} / ${model}`;
+      const fallbackTotal = sData.llm?.totalFallbacks || 0;
+      const lastReason = sData.llm?.lastFallback?.reason || "";
+      if (fallbackTotal > 0) {
+        modelLabel += ` (回退 ${fallbackTotal}${lastReason ? `，最近：${lastReason}` : ""})`;
+      }
+      stats.model = modelLabel;
       stats.toolCalls = sData.toolCalls || 0;
-      
-      if (sData.uptimeMillis) {
 
+      if (sData.uptimeMillis) {
         const seconds = Math.floor(sData.uptimeMillis / 1000);
         const mins = Math.floor(seconds / 60);
         const hours = Math.floor(mins / 60);
         const days = Math.floor(hours / 24);
         stats.uptime = `${days}d ${hours % 24}h ${mins % 60}m`;
       }
-
     }
+
   } catch (error) {
     console.error("Monitor refresh failed", error);
     health.value = "down";
@@ -68,7 +96,7 @@ async function refresh() {
 function subscribeEvents() {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) return;
-  
+
   const eventSource = new EventSource(`${baseUrl}/api/monitor/events`);
   eventSource.onmessage = (event) => {
     try {
@@ -82,10 +110,37 @@ function subscribeEvents() {
   };
 }
 
+async function fetchLogs(limit = 200) {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) return;
+  try {
+    const res = await fetch(`${baseUrl}/api/ops/logs?limit=${limit}`);
+    if (res.ok) {
+      logEntries.value = await res.json();
+    }
+  } catch (error) {
+    console.error("Fetch ops logs failed", error);
+  }
+}
+
+async function initWorkspace() {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) return;
+  try {
+    const res = await fetch(`${baseUrl}/api/ops/init`, { method: "POST" });
+    if (res.ok) {
+      lastInit.value = await res.json();
+    }
+  } catch (error) {
+    console.error("Init workspace failed", error);
+  }
+}
+
 // Initial refresh
 refresh();
 
 export function useMonitorStore() {
-  return { health, stats, refresh, subscribeEvents };
+  return { health, stats, logEntries, lastInit, refresh, fetchLogs, initWorkspace, subscribeEvents };
 }
+
 

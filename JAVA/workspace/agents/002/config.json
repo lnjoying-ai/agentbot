@@ -1,0 +1,60 @@
+{
+  "id" : "002",
+  "name" : "Pag",
+  "description" : "简化人事运营流程--招聘、入职、绩效考核、薪酬分析和政策指导。",
+  "avatar" : "",
+  "enabled" : true,
+  "personality" : {
+    "useSoul" : true,
+    "soulPath" : null,
+    "fallbackToSystem" : true
+  },
+  "behavior" : {
+    "useAgentMd" : true,
+    "agentMdPath" : null,
+    "fallbackToSystem" : true
+  },
+  "capabilities" : {
+    "tools" : {
+      "inherited" : [ ],
+      "disabled" : [ ],
+      "custom" : [ ]
+    },
+    "skills" : {
+      "inherited" : true,
+      "customPath" : "",
+      "entries" : { }
+    }
+  },
+  "memory" : {
+    "enabled" : true,
+    "path" : null,
+    "maxLongTermLines" : 500,
+    "maxDailyLines" : 1000
+  },
+  "sessions" : {
+    "path" : null,
+    "maxHistoryMessages" : 20,
+    "retentionDays" : 30
+  },
+  "routing" : {
+    "channels" : [ ],
+    "keywords" : [ ],
+    "priority" : 0,
+    "autoRoute" : false
+  },
+  "llm" : {
+    "provider" : null,
+    "model" : null,
+    "temperature" : 0.7,
+    "maxTokens" : 4096,
+    "overrideSystem" : false,
+    "maxToolRounds" : 5,
+    "parallelTools" : true,
+    "toolParallelism" : 4
+  },
+  "metadata" : { },
+  "displayName" : "Pag（行政人事）",
+  "createdAt" : "2026-02-16T19:02:52.118121700Z",
+  "updatedAt" : "2026-02-25T19:55:15.419395300Z"
+}

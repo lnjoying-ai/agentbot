@@ -13,10 +13,12 @@ import java.util.Map;
 public class CronController {
   private final CronService cronService;
   private final AutomationService automationService;
+  private final com.agentbot.core.cron.CronJobStore cronJobStore;
 
-  public CronController(CronService cronService, AutomationService automationService) {
+  public CronController(CronService cronService, AutomationService automationService, com.agentbot.core.cron.CronJobStore cronJobStore) {
     this.cronService = cronService;
     this.automationService = automationService;
+    this.cronJobStore = cronJobStore;
   }
 
   @PostMapping("/schedule")
@@ -58,14 +60,40 @@ public class CronController {
         request.deliver(),
         request.to(),
         request.channel(),
-        () -> automationService.triggerCron(sessionKey, prompt)
+        () -> automationService.triggerCronWithDelivery(
+            sessionKey,
+            prompt,
+            new com.agentbot.core.automation.AutomationService.DeliveryOptions(
+                request.deliver(),
+                request.channel(),
+                request.to()
+            )
+        )
     );
+    cronJobStore.save(cronService.listJobs());
     return Map.of("ok", true, "id", job.getId());
   }
 
   @GetMapping("/jobs")
   public Collection<CronJob> jobs() {
     return cronService.listJobs();
+  }
+
+  @PostMapping("/enable")
+  public Map<String, Object> enable(@RequestBody CronEnableRequest request) {
+    CronJob job = cronService.enableJob(request.id(), request.enabled());
+    if (job == null) {
+      return Map.of("ok", false, "error", "job not found");
+    }
+    cronJobStore.save(cronService.listJobs());
+    return Map.of("ok", true, "id", job.getId(), "enabled", job.isEnabled());
+  }
+
+  @DeleteMapping("/{id}")
+  public Map<String, Object> remove(@PathVariable("id") String id) {
+    boolean ok = cronService.removeJob(id);
+    cronJobStore.save(cronService.listJobs());
+    return Map.of("ok", ok, "id", id);
   }
 
   public record CronScheduleRequest(
@@ -78,6 +106,11 @@ public class CronController {
       boolean deliver,
       String to,
       String channel
+  ) {}
+
+  public record CronEnableRequest(
+      String id,
+      boolean enabled
   ) {}
 }
 

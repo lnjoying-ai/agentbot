@@ -1,22 +1,24 @@
 package com.agentbot.core.tools.impl;
 
-import com.agentbot.core.bus.MessageBus;
-import com.agentbot.core.bus.events.OutboundMessage;
+import com.agentbot.core.bus.ExternalMessageBus;
+import com.agentbot.core.bus.MessageEnvelope;
 import com.agentbot.core.tools.ToolDefinition;
 import com.agentbot.core.tools.ToolExecutionResult;
 import com.agentbot.core.tools.ToolWithDefinition;
+
 
 import java.util.List;
 import java.util.Map;
 
 public class MessageTool implements ToolWithDefinition {
-    private final MessageBus messageBus;
+    private final ExternalMessageBus messageBus;
     private String defaultChannel;
     private String defaultChatId;
 
-    public MessageTool(MessageBus messageBus) {
+    public MessageTool(ExternalMessageBus messageBus) {
         this.messageBus = messageBus;
     }
+
 
     public void setContext(String channel, String chatId) {
         this.defaultChannel = channel;
@@ -56,10 +58,11 @@ public class MessageTool implements ToolWithDefinition {
         }
 
         try {
-            messageBus.publishOutbound(new OutboundMessage(channel, chatId, content));
+            messageBus.publish(MessageEnvelope.externalOutbound(channel, chatId, content, null));
             return new ToolExecutionResult(true, "Message sent to " + channel + ":" + chatId);
         } catch (Exception e) {
             return new ToolExecutionResult(false, "Failed to send message: " + e.getMessage());
         }
+
     }
 }

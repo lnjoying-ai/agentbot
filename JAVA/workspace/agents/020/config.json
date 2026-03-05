@@ -1,0 +1,60 @@
+{
+  "id" : "020",
+  "name" : "Bill",
+  "description" : "简化研究工作流程，例如解析盈利报告、根据新的指导意见更新财务模型以及撰写研究报告。",
+  "avatar" : "",
+  "enabled" : true,
+  "personality" : {
+    "useSoul" : true,
+    "soulPath" : null,
+    "fallbackToSystem" : true
+  },
+  "behavior" : {
+    "useAgentMd" : true,
+    "agentMdPath" : null,
+    "fallbackToSystem" : true
+  },
+  "capabilities" : {
+    "tools" : {
+      "inherited" : [ ],
+      "disabled" : [ ],
+      "custom" : [ ]
+    },
+    "skills" : {
+      "inherited" : true,
+      "customPath" : "",
+      "entries" : { }
+    }
+  },
+  "memory" : {
+    "enabled" : true,
+    "path" : null,
+    "maxLongTermLines" : 500,
+    "maxDailyLines" : 1000
+  },
+  "sessions" : {
+    "path" : null,
+    "maxHistoryMessages" : 20,
+    "retentionDays" : 30
+  },
+  "routing" : {
+    "channels" : [ ],
+    "keywords" : [ ],
+    "priority" : 0,
+    "autoRoute" : false
+  },
+  "llm" : {
+    "provider" : null,
+    "model" : null,
+    "temperature" : 0.7,
+    "maxTokens" : 4096,
+    "overrideSystem" : false,
+    "maxToolRounds" : 5,
+    "parallelTools" : true,
+    "toolParallelism" : 4
+  },
+  "metadata" : { },
+  "displayName" : "Bill（股票研究）",
+  "createdAt" : "2026-02-25T19:50:21.213111100Z",
+  "updatedAt" : "2026-02-25T19:56:46.516414200Z"
+}

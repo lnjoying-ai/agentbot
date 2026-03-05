@@ -26,8 +26,14 @@ public class ConfigController {
   public Map<String, Object> getConfig() {
     log.debug("Fetching effective and stored configuration");
     Map<String, Object> response = new HashMap<>();
+    Map<String, Object> stored = store.load();
+    Map<String, Object> maskedStored = maskConfig(stored);
+    if (maskedStored.isEmpty()) {
+      maskedStored = new HashMap<>();
+      maskedStored.put("agentbot", maskSecrets(properties));
+    }
     response.put("effective", maskSecrets(properties));
-    response.put("stored", store.load());
+    response.put("stored", maskedStored);
     response.put("path", store.getConfigPath().toString());
     return response;
   }
@@ -48,20 +54,44 @@ public class ConfigController {
   private Map<String, Object> maskSecrets(AgentbotProperties props) {
     Map<String, Object> llm = new HashMap<>();
     llm.put("provider", props.getLlm().getProvider());
-    llm.put("apiBaseUrl", props.getLlm().getApiBaseUrl());
-    llm.put("baseUrl", props.getLlm().getBaseUrl());
-    llm.put("model", props.getLlm().getModel());
     llm.put("temperature", props.getLlm().getTemperature());
-
     llm.put("fallbackOrder", props.getLlm().getFallbackOrder());
     llm.put("maxToolRounds", props.getLlm().getMaxToolRounds());
     llm.put("parallelTools", props.getLlm().isParallelTools());
     llm.put("toolParallelism", props.getLlm().getToolParallelism());
-    llm.put("apiKey", mask(props.getLlm().getApiKey()));
 
-    llm.put("openrouterKey", mask(props.getLlm().getOpenrouter().getApiKey()));
-    llm.put("glmKey", mask(props.getLlm().getGlm().getApiKey()));
-    llm.put("kimiKey", mask(props.getLlm().getKimi().getApiKey()));
+    llm.put("openai", Map.of(
+        "apiKey", mask(props.getLlm().getOpenai().getApiKey()),
+        "baseUrl", props.getLlm().getOpenai().getBaseUrl(),
+        "model", props.getLlm().getOpenai().getModel()
+    ));
+    llm.put("openrouter", Map.of(
+        "apiKey", mask(props.getLlm().getOpenrouter().getApiKey()),
+        "baseUrl", props.getLlm().getOpenrouter().getBaseUrl(),
+        "model", props.getLlm().getOpenrouter().getModel()
+    ));
+    llm.put("glm", Map.of(
+        "apiKey", mask(props.getLlm().getGlm().getApiKey()),
+        "baseUrl", props.getLlm().getGlm().getBaseUrl(),
+        "model", props.getLlm().getGlm().getModel()
+    ));
+    llm.put("kimi", Map.of(
+        "apiKey", mask(props.getLlm().getKimi().getApiKey()),
+        "baseUrl", props.getLlm().getKimi().getBaseUrl(),
+        "model", props.getLlm().getKimi().getModel()
+    ));
+    llm.put("qwen", Map.of(
+        "apiKey", mask(props.getLlm().getQwen().getApiKey()),
+        "baseUrl", props.getLlm().getQwen().getBaseUrl(),
+        "model", props.getLlm().getQwen().getModel()
+    ));
+    llm.put("minimax", Map.of(
+        "apiKey", mask(props.getLlm().getMinimax().getApiKey()),
+        "baseUrl", props.getLlm().getMinimax().getBaseUrl(),
+        "model", props.getLlm().getMinimax().getModel()
+    ));
+
+
 
 
     Map<String, Object> channels = new HashMap<>();
@@ -80,10 +110,10 @@ public class ConfigController {
     ));
 
     Map<String, Object> data = new HashMap<>();
-    data.put("workspaceDir", props.getWorkspaceDir());
-    data.put("configFile", props.getConfigFile());
     data.put("channels", channels);
+
     data.put("llm", llm);
+
     data.put("heartbeat", Map.of(
         "enabled", props.getHeartbeat().isEnabled(),
         "intervalSeconds", props.getHeartbeat().getIntervalSeconds()
@@ -94,6 +124,48 @@ public class ConfigController {
         "defaultPrompt", props.getCron().getDefaultPrompt()
     ));
     return data;
+  }
+
+  private Map<String, Object> maskConfig(Map<String, Object> raw) {
+    if (raw == null) {
+      return new HashMap<>();
+    }
+    Map<String, Object> masked = new HashMap<>();
+    for (Map.Entry<String, Object> entry : raw.entrySet()) {
+      masked.put(entry.getKey(), maskValue(entry.getKey(), entry.getValue()));
+    }
+    return masked;
+  }
+
+  private Object maskValue(String key, Object value) {
+    if (value instanceof Map) {
+      Map<String, Object> nested = new HashMap<>();
+      Map<?, ?> mapValue = (Map<?, ?>) value;
+      for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+        String childKey = String.valueOf(entry.getKey());
+        nested.put(childKey, maskValue(childKey, entry.getValue()));
+      }
+      return nested;
+    }
+    if (value instanceof Iterable) {
+      java.util.List<Object> list = new java.util.ArrayList<>();
+      for (Object item : (Iterable<?>) value) {
+        list.add(maskValue(key, item));
+      }
+      return list;
+    }
+    if (value instanceof String && isSecretKey(key)) {
+      return mask((String) value);
+    }
+    return value;
+  }
+
+  private boolean isSecretKey(String key) {
+    String lower = key.toLowerCase();
+    return lower.contains("key")
+        || lower.contains("token")
+        || lower.contains("secret")
+        || lower.contains("password");
   }
 
   private String mask(String value) {

@@ -1,0 +1,60 @@
+{
+  "id" : "021",
+  "name" : "Bright",
+  "description" : "通过审查大量文件集、提取标准化财务数据、模拟场景以及根据投资标准对机会进行评分，为交易搜寻和尽职调查提供支持。",
+  "avatar" : "",
+  "enabled" : true,
+  "personality" : {
+    "useSoul" : true,
+    "soulPath" : null,
+    "fallbackToSystem" : true
+  },
+  "behavior" : {
+    "useAgentMd" : true,
+    "agentMdPath" : null,
+    "fallbackToSystem" : true
+  },
+  "capabilities" : {
+    "tools" : {
+      "inherited" : [ ],
+      "disabled" : [ ],
+      "custom" : [ ]
+    },
+    "skills" : {
+      "inherited" : true,
+      "customPath" : "",
+      "entries" : { }
+    }
+  },
+  "memory" : {
+    "enabled" : true,
+    "path" : null,
+    "maxLongTermLines" : 500,
+    "maxDailyLines" : 1000
+  },
+  "sessions" : {
+    "path" : null,
+    "maxHistoryMessages" : 20,
+    "retentionDays" : 30
+  },
+  "routing" : {
+    "channels" : [ ],
+    "keywords" : [ ],
+    "priority" : 0,
+    "autoRoute" : false
+  },
+  "llm" : {
+    "provider" : null,
+    "model" : null,
+    "temperature" : 0.7,
+    "maxTokens" : 4096,
+    "overrideSystem" : false,
+    "maxToolRounds" : 5,
+    "parallelTools" : true,
+    "toolParallelism" : 4
+  },
+  "metadata" : { },
+  "displayName" : "Bright（私募股权）",
+  "createdAt" : "2026-02-25T19:51:14.773308500Z",
+  "updatedAt" : "2026-02-25T19:57:08.555037900Z"
+}

@@ -1,8 +1,8 @@
 package com.agentbot.core.channel.impl;
 
 import com.agentbot.config.AgentbotProperties;
-import com.agentbot.core.bus.MessageBus;
-import com.agentbot.core.bus.events.InboundMessage;
+import com.agentbot.core.bus.ExternalMessageBus;
+import com.agentbot.core.bus.MessageEnvelope;
 import com.agentbot.core.bus.events.OutboundMessage;
 import com.agentbot.core.channel.ChannelAdapter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,24 +15,28 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 
 public class TelegramChannelAdapter implements ChannelAdapter {
   private static final Logger log = LoggerFactory.getLogger(TelegramChannelAdapter.class);
 
-  private final MessageBus messageBus;
+  private final ExternalMessageBus messageBus;
   private final AgentbotProperties.Telegram config;
+
   private final ObjectMapper mapper = new ObjectMapper();
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private volatile boolean running = false;
   private volatile HttpClient httpClient;
   private long offset = 0L;
 
-  public TelegramChannelAdapter(MessageBus messageBus, AgentbotProperties properties) {
+  public TelegramChannelAdapter(ExternalMessageBus messageBus, AgentbotProperties properties) {
     this.messageBus = messageBus;
     this.config = properties.getChannels().getTelegram();
   }
+
 
   @Override
   public String name() {
@@ -50,6 +54,7 @@ public class TelegramChannelAdapter implements ChannelAdapter {
       return;
     }
     running = true;
+    log.info("telegram channel started: pollSeconds={}", config.getPollSeconds());
     worker.execute(this::pollLoop);
   }
 
@@ -57,13 +62,18 @@ public class TelegramChannelAdapter implements ChannelAdapter {
   public void stop() {
     running = false;
     worker.shutdownNow();
+    log.info("telegram channel stopped");
   }
+
 
   @Override
   public void send(OutboundMessage message) {
     if (!config.isEnabled()) return;
     String token = config.getToken();
-    if (token == null || token.isBlank()) return;
+    if (token == null || token.isBlank()) {
+      log.warn("telegram token missing, skip send");
+      return;
+    }
     try {
       String url = "https://api.telegram.org/bot" + token + "/sendMessage";
       String payload = mapper.writeValueAsString(
@@ -74,11 +84,21 @@ public class TelegramChannelAdapter implements ChannelAdapter {
           .header("Content-Type", "application/json")
           .POST(HttpRequest.BodyPublishers.ofString(payload))
           .build();
-      httpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString());
+      httpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString())
+          .thenAccept(response -> {
+            int code = response.statusCode();
+            if (code >= 300) {
+              log.warn("telegram send failed: chatId={} status={}", message.getChatId(), code);
+            } else {
+              log.info("telegram send ok: chatId={} length={}", message.getChatId(),
+                  message.getContent() == null ? 0 : message.getContent().length());
+            }
+          });
     } catch (Exception e) {
       log.warn("telegram send failed", e);
     }
   }
+
 
   private void pollLoop() {
     int pollSeconds = Math.max(1, config.getPollSeconds());
@@ -115,10 +135,22 @@ public class TelegramChannelAdapter implements ChannelAdapter {
       if (text.isBlank()) continue;
       String senderId = message.path("from").path("id").asText("");
       String chatId = message.path("chat").path("id").asText("");
-      InboundMessage inbound = new InboundMessage("telegram", senderId, chatId, text);
-      messageBus.publishInbound(inbound);
+      String chatType = message.path("chat").path("type").asText("private");
+      String peerKind = "private".equalsIgnoreCase(chatType) ? "dm"
+          : ("channel".equalsIgnoreCase(chatType) ? "channel" : "group");
+      log.info("telegram inbound: chatId={} senderId={} length={}", chatId, senderId, text.length());
+      HashMap<String, Object> metadata = new HashMap<>();
+      metadata.put(MessageEnvelope.META_ACCOUNT_ID, "default");
+      metadata.put(MessageEnvelope.META_PEER_KIND, peerKind);
+      metadata.put(MessageEnvelope.META_PEER_ID, chatId);
+      metadata.put("raw", update);
+      MessageEnvelope inbound = MessageEnvelope.externalInbound("telegram", senderId, chatId, text, metadata);
+      messageBus.publish(inbound);
+
+
     }
   }
+
 
   private void sleepSeconds(int seconds) {
     try {

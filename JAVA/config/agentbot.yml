@@ -1,10 +1,18 @@
 agentbot:
-  workspaceDir: "./workspace"
-  configFile: "agentbot-config.yml"
-  
+  heartbeatFile: "HEARTBEAT.md"
+
   channels:
-    telegram:
+    feishu:
       enabled: true
+      appId: ""
+      appSecret: ""
+      verificationToken: ""
+      encryptKey: ""
+      domain: "https://open.feishu.cn"
+      autoReconnect: true
+      # inbound via Feishu WebSocket
+    telegram:
+      enabled: false
       token: ""
       pollSeconds: 2
     whatsapp:
@@ -16,49 +24,316 @@ agentbot:
       appSecret: ""
       token: ""
       aesKey: ""
+    discord:
+      enabled: false
+      botToken: ""
+      gatewayUrl: "wss://gateway.discord.gg/?v=10&encoding=json"
+      intents: 513
+      reconnectIntervalSeconds: 5
+      # inbound webhook: POST /webhook/discord
+    maixcam:
+      enabled: false
+      host: "0.0.0.0"
+      port: 19032
+      # device TCP ingress
+    qq:
+      enabled: false
+      appId: ""
+      appSecret: ""
+      botToken: ""
+      apiBaseUrl: "https://api.sgroup.qq.com"
+      wsUrl: "wss://api.sgroup.qq.com/websocket"
+      intents: 1
+      shardId: 0
+      shardCount: 1
+      reconnectIntervalSeconds: 5
+      # inbound webhook: POST /webhook/qq
+    dingtalk:
+      enabled: false
+      appKey: ""
+      appSecret: ""
+      token: ""
+      aesKey: ""
+      # stream mode via WebSocket (DingTalk Stream SDK)
+      webhookUrl: ""
+      webhookSecret: ""
+      apiBaseUrl: "https://oapi.dingtalk.com"
+      # inbound stream: DingTalk Stream topics
+    slack:
+      enabled: false
+      botToken: ""
+      signingSecret: ""
+      # inbound webhook: POST /webhook/slack
+    line:
+      enabled: false
+      channelSecret: ""
+      channelAccessToken: ""
+      # inbound webhook: POST /webhook/line (X-Line-Signature)
+    onebot:
+      enabled: false
+      wsUrl: ""
+      accessToken: ""
+      reconnectIntervalSeconds: 5
+      groupTriggerPrefix: ""
+      # outbound group needs metadata.isGroup=true
+
+  agents:
+    defaults:
+      defaultAgentId: "default"
+
+  bindings: 
+
+  # bindings 示例（每种 IM 通道一条，按需启用）
+  #- agentId: "feishu-agentbot"
+  #  match:
+  #    channel: "feishu"
+  #    teamId: "*"                # 飞书租户 ID
+  #    peer:
+  #      kind: "dm"               # group | dm
+  #      id: ""                   # 群聊/用户 ID
+
+  # - agentId: "telegram-bot"
+  #   match:
+  #     channel: "telegram"
+  #     accountId: "default"          # 账号标识（多账号时使用）
+  #     peer:
+  #       kind: "user"
+  #       id: "123456789"
+
+  # - agentId: "whatsapp-bot"
+  #   match:
+  #     channel: "whatsapp"
+  #     accountId: "biz"              # 多 WhatsApp 账号标识
+  #     peer:
+  #       kind: "group"
+  #       id: "1203630...@g.us"
+
+  # - agentId: "wechat-bot"
+  #   match:
+  #     channel: "wechat"
+  #     accountId: "corp"             # 公众号/企业号标识
+  #     peer:
+  #       kind: "dm"
+  #       id: "oAbcdEFG123456"
+
+  # - agentId: "discord-bot"
+  #   match:
+  #     channel: "discord"
+  #     guildId: "123456789012345678" # 服务器 ID
+  #     peer:
+  #       kind: "group"
+  #       id: "123456789012345678"   # 频道 ID
+
+  # - agentId: "maixcam-bot"
+  #   match:
+  #     channel: "maixcam"
+  #     peer:
+  #       kind: "device"
+  #       id: "mx-001"
+
+  # - agentId: "qq-bot"
+  #   match:
+  #     channel: "qq"
+  #     guildId: "234567890"          # 频道服务器/群 ID
+  #     peer:
+  #       kind: "group"
+  #       id: "987654321"
+
+  # - agentId: "dingtalk-bot"
+  #   match:
+  #     channel: "dingtalk"
+  #     accountId: "corpA"
+  #     peer:
+  #       kind: "group"
+  #       id: "chat123456"
+
+  # - agentId: "slack-bot"
+  #   match:
+  #     channel: "slack"
+  #     teamId: "T12345678"           # Workspace ID
+  #     peer:
+  #       kind: "group"
+  #       id: "C12345678"            # Channel ID
+
+  # - agentId: "line-bot"
+  #   match:
+  #     channel: "line"
+  #     peer:
+  #       kind: "user"
+  #       id: "U4af4980629..."
+
+  # - agentId: "onebot-bot"
+  #   match:
+  #     channel: "onebot"
+  #     peer:
+  #       kind: "group"
+  #       id: "123456789"
+
   heartbeat:
-    enabled: false
+    enabled: true
     intervalSeconds: 60
   cron:
-    enabled: false
-    defaultIntervalSeconds: 3600
+    enabled: true
+    defaultIntervalSeconds: 60
     defaultPrompt: ""
   ops:
     logBufferSize: 200
+    chatStreamBufferSize: 50
+    chatMode: "qa"
+
+
   search:
     type: "bocha"
     braveApiKey: ""
     bochaApiKey: ""
+  approvals:
+    tools:
+      security: "full"     # deny | allowlist | full
+      ask: "on-miss"       # off | on-miss | always  
+      askFallback: "deny"  # deny | allow  
+      uiChannels:
+        - "web"
+      allowlist:
+        - tool: "shell"
+          match:
+            command: '/^(ls|pwd|dir)(\\s|$).*/'
+  browser:
+    enabled: true
+    controlPort: 18791
+    defaultProfile: "agentbot"
+    headless: true
+    noSandbox: false
+    attachOnly: false
+    remoteCdpTimeoutMs: 15000
+    sandboxBridgeUrl: ""
+    nodeBridgeUrl: ""
+    executablePath: ""  #C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+    profiles:
+      agentbot:
+        driver: "agentbot"
+        userDataDir: ""
+        cdpUrl: ""
+        color: "#FF4500"
+      chrome:
+        driver: "extension"
+        userDataDir: "chrome"
+        cdpUrl: "http://127.0.0.1:18792"
+        color: "#00AA00"
+    antiBot:
+      level: "enhanced" # basic | enhanced | advanced
+      userAgent: ""
+      locale: "zh-CN"
+      timezoneId: "Asia/Shanghai"
+      headers:
+        Accept-Language: "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7"
+      blockResourceTypes:
+        - "image"
+        - "font"
+        - "media"
+      blockUrlPatterns:
+        - "*://*/*analytics*"
+        - "*://*/*gtag*"
+        - "*://*/*ads*"
+      proxies: []
+      enableBehavior: true
+      enableDetection: true
+      enableStealth: true
+      enableResourceBlock: true
+
+  p2p:
+    enabled: true
+    port: 19031
+
+    peersFile: "peers.yml"
+    maxNeighbors: 8
+    getaddrLimit: 50
+    getaddrIntervalSeconds: 600
+    getaddrSampleRatio: 0.5
+    getaddrMaxPerMinute: 60
+    getaddrBackoffMaxSeconds: 1800
+    refreshSeconds: 900
+    persistSeconds: 900
+    skillExchangeEnabled: true
+    skillInvIntervalSeconds: 600
+    skillInvSampleRatio: 0.5
+    skillInvMaxPerRound: 100
+    skillGetdataMaxPerMinute: 120
+    skillMaxPackageBytes: 2097152
+
+    seeds: []
+
+    regionId: "default"
+    protocolVersion: 1
+    maxPayload: 1048576
+    requireEncryption: true
+    preferredCipherSuite: "CHACHA20_POLY1305"
+    preferredContentType: "application/json"
+    supportedContentTypes:
+      - "application/json"
+      - "application/cbor"
+      - "application/x-protobuf"
+    supportedCompression:
+      - "none"
+    supportedCipherSuites:
+      - "AES_GCM_256"
+      - "CHACHA20_POLY1305"
+    authRequired: false
+    obfuscationEnabled: true
+    obfuscationAlgo: "elligator-swift-lite"
+    flowWindow: 1024
+    maxInFlight: 256
+    idempotentWindow: 10000
+    
   llm:
     provider: "kimi"
-    apiKey: ""
-    baseUrl: "https://api.moonshot.cn/v1"
-    model: "kimi-k2.5"
     temperature: 1
-    fallbackOrder: "openai,openrouter,glm,kimi"
-    maxToolRounds: 20
+    fallbackOrder: "kimi,glm,minimax,qwen"
+    maxToolRounds: 30
     parallelTools: true
-    toolParallelism: 4
+    toolParallelism: 3
+    kimi:
+      apiKey: ""
+      baseUrl: "https://api.moonshot.cn/v1/chat/completions"
+      model: "kimi-k2.5"
+    glm:
+      apiKey: ""
+      baseUrl: "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+      model: "glm-4.7"
+    minimax:
+      apiKey: ""
+      baseUrl: "https://api.minimaxi.com/v1/chat/completions"
+      model: "MiniMax-M2.5"
+    qwen:
+      apiKey: ""
+      baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+      model: "qwen-turbo"
+    apimesh:
+      apiKey: ""
+      baseUrl: ""
+      model: "kimi-k2.5"
     openrouter:
       apiKey: ""
       baseUrl: "https://openrouter.ai/api/v1"
-      model: ""
-    glm:
+      model: "openai/gpt-5.2"
+    openai:
       apiKey: ""
-      baseUrl: "https://open.bigmodel.cn/api/paas/v4"
-      model: ""
-    kimi:
-      apiKey: ""
-      baseUrl: "https://api.moonshot.cn/v1"
-      model: "kimi-k2.5"
+      baseUrl: ""
+      model: "gpt-5.2"
+      
 server:
   port: 8080
 
 logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
   level:
     root: INFO
     com.agentbot: DEBUG
     org.apache.hc.client5.http.wire: DEBUG
     org.springframework.web.client.RestTemplate: DEBUG
+
+
+
 
 

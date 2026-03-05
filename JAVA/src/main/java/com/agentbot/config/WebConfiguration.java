@@ -6,24 +6,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import com.agentbot.core.util.ConfigPathResolver;
+
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
     private static final Logger log = LoggerFactory.getLogger(WebConfiguration.class);
-    private final AgentbotProperties properties;
-
-    public WebConfiguration(AgentbotProperties properties) {
-        this.properties = properties;
-    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Map /workspace/** to the local workspace directory
-        String workspaceDir = properties.getWorkspaceDir();
-        Path path = Paths.get(workspaceDir).toAbsolutePath();
+        Path path = ConfigPathResolver.resolveUserDataDir().resolve("workspace").toAbsolutePath().normalize();
         String location = "file:" + path.toString().replace("\\", "/") + "/";
+
         
         log.info("Mapping /workspace/** to {}", location);
         

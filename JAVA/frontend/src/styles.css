@@ -177,6 +177,7 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 520px;
+  overflow: hidden;
 }
 
 .chat-stream {
@@ -184,8 +185,9 @@ a {
   flex-direction: column;
   gap: 16px;
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   padding-right: 10px;
+  min-width: 0;
 }
 
 .message {
@@ -193,7 +195,12 @@ a {
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.04);
+  max-width: 100%;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
+
 
 .message.user {
   align-self: flex-end;
@@ -208,10 +215,13 @@ a {
 .message-meta {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   font-size: 11px;
   color: var(--muted);
   margin-bottom: 6px;
+  word-break: break-word;
 }
+
 
 .chat-composer {
   margin-top: 14px;

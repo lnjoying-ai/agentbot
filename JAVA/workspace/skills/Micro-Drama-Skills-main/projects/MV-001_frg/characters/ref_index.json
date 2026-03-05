@@ -1,0 +1,15 @@
+{
+  "程序员": {
+    "source": "imported",
+    "original_file": "notes/mv reffiles/阿哲_真人风格.jpeg",
+    "ref_file": "characters/程序员_ref.jpeg",
+    "status": "ready",
+    "reason": "由用户提供真人参考图（阿哲_真人风格.jpeg），已导入项目目录"
+  },
+  "程序员_觉醒态": {
+    "source": "generated",
+    "ref_file": "characters/程序员_styleB_ref.png",
+    "status": "ready",
+    "reason": "由 Gemini 生成的赛博铠甲觉醒形态三视图参考图（正面/3/4侧面/背面）"
+  }
+}

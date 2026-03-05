@@ -44,7 +44,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
     ...{ class: "badge" },
 });
-(__VLS_ctx.config.state.apiBaseUrl || '本地');
+(__VLS_ctx.config.state.serverBaseUrl || '本地');
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "status-group" },
 });

@@ -15,41 +15,56 @@ import java.util.stream.Stream;
 
 public class SkillLoader {
     private static final Logger log = LoggerFactory.getLogger(SkillLoader.class);
-    private final Path skillsPath;
+    private final List<Path> skillsPaths;
     private final ObjectMapper yamlMapper = new YAMLMapper();
     private static final Pattern FRONT_MATTER_PATTERN = Pattern.compile("^---\\s*\\n(.*?)\\n---\\s*\\n(.*)$", Pattern.DOTALL);
 
     public SkillLoader(Path skillsPath) {
-        this.skillsPath = skillsPath;
+        this.skillsPaths = List.of(skillsPath);
+    }
+
+    public SkillLoader(List<Path> skillsPaths) {
+        this.skillsPaths = skillsPaths == null || skillsPaths.isEmpty()
+                ? List.of()
+                : List.copyOf(skillsPaths);
     }
 
     public List<Skill> loadSkills() {
-        if (!Files.exists(skillsPath)) {
-            log.warn("Skills path does not exist: {}", skillsPath);
-            return Collections.emptyList();
+        Map<String, Skill> merged = new LinkedHashMap<>();
+        for (Path skillsPath : skillsPaths) {
+            loadSkillsFromPath(skillsPath, merged);
         }
+        return new ArrayList<>(merged.values());
+    }
 
-        List<Skill> skills = new ArrayList<>();
+    private void loadSkillsFromPath(Path skillsPath, Map<String, Skill> merged) {
+        log.debug("Loading skills from path: {}", skillsPath);
+        if (skillsPath == null || !Files.exists(skillsPath)) {
+            log.debug("Skills path does not exist: {}", skillsPath);
+            return;
+        }
         try (Stream<Path> walk = Files.walk(skillsPath)) {
             List<Path> skillFiles = walk
                     .filter(p -> p.getFileName().toString().equalsIgnoreCase("SKILL.md"))
                     .collect(Collectors.toList());
+            log.debug("Found {} skill files under {}", skillFiles.size(), skillsPath);
 
             for (Path file : skillFiles) {
+                log.debug("Parsing skill file: {}", file);
                 try {
                     Skill skill = parseSkillFile(file);
-                    if (skill != null) {
-                        skills.add(skill);
+                    if (skill != null && !merged.containsKey(skill.getName())) {
+                        merged.put(skill.getName(), skill);
                     }
                 } catch (Exception e) {
                     log.error("Failed to parse skill file: {}", file, e);
                 }
             }
         } catch (IOException e) {
-            log.error("Failed to walk skills directory", e);
+            log.error("Failed to walk skills directory: {}", skillsPath, e);
         }
-        return skills;
     }
+
 
     private Skill parseSkillFile(Path path) throws IOException {
         String content = Files.readString(path);

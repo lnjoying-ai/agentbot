@@ -6,14 +6,34 @@ import com.agentbot.core.tools.ToolWithDefinition;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class FileReadTool implements ToolWithDefinition {
+    private final List<Path> searchRoots;
+
+    public FileReadTool() {
+        this(null);
+    }
+
+    public FileReadTool(Path workspaceDir) {
+        List<Path> roots = new ArrayList<>();
+        if (workspaceDir != null) {
+            Path ws = workspaceDir.toAbsolutePath().normalize();
+            roots.add(ws);
+            roots.add(ws.resolve("skills"));
+            roots.add(ws.resolve("system").resolve("skills"));
+            roots.add(ws.resolve("agents"));
+        }
+        this.searchRoots = List.copyOf(roots);
+    }
+
     @Override
     public String name() {
         return "read_file";
     }
+
 
     @Override
     public ToolDefinition definition() {
@@ -38,7 +58,21 @@ public class FileReadTool implements ToolWithDefinition {
         String pathStr = (String) args.get("path");
         try {
             Path path = Path.of(pathStr);
-            if (!Files.exists(path)) {
+            if (!path.isAbsolute()) {
+                if (Files.exists(path) && Files.isRegularFile(path)) {
+                    String content = Files.readString(path);
+                    return new ToolExecutionResult(true, content);
+                }
+                for (Path root : searchRoots) {
+                    Path candidate = root.resolve(pathStr).normalize();
+                    if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
+                        String content = Files.readString(candidate);
+                        return new ToolExecutionResult(true, content);
+                    }
+                }
+                return new ToolExecutionResult(false, "File not found: " + pathStr);
+            }
+            if (!Files.exists(path) || !Files.isRegularFile(path)) {
                 return new ToolExecutionResult(false, "File not found: " + pathStr);
             }
             String content = Files.readString(path);
@@ -48,3 +82,4 @@ public class FileReadTool implements ToolWithDefinition {
         }
     }
 }
+

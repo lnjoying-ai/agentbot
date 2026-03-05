@@ -5,7 +5,8 @@
       <div class="status-group">
         <HealthBadge :status="healthStatus" :text="healthLabel" />
         <span class="badge">模型: {{ monitor.stats.model }}</span>
-        <span class="badge">API: {{ config.state.apiBaseUrl || '本地' }}</span>
+        <span class="badge">后端: {{ config.state.serverBaseUrl || '本地' }}</span>
+
       </div>
     </div>
     <div class="status-group">

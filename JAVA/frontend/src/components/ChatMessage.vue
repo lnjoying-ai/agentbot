@@ -4,8 +4,9 @@
       <span>{{ roleLabel }}</span>
       <span>{{ message.timestamp }}</span>
     </div>
-    <div class="markdown-body" v-html="renderedContent"></div>
+    <div v-if="hasContent" class="markdown-body" v-html="renderedContent"></div>
     <div v-if="message.toolResults?.length" style="margin-top: 10px; display: grid; gap: 8px;">
+
       <ToolResultCard v-for="tool in message.toolResults" :key="tool.id" :tool="tool" />
     </div>
   </div>
@@ -17,10 +18,9 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
 import type { ChatMessage } from "../types";
-import { useConfigStore } from "../store/config";
 
 const props = defineProps<{ message: ChatMessage }>();
-const { state: config } = useConfigStore();
+
 
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
@@ -31,21 +31,17 @@ const roleLabel = computed(() => {
 });
 
 const renderedContent = computed(() => {
-  let content = props.message.content || "";
-  
-  // Convert absolute workspace paths to relative URLs if possible
-  if (config.workspaceDir) {
-    // Escape backslashes for regex and handle both slash types
-    const escapedDir = config.workspaceDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedDir.replace(/\\\\/g, '[\\\\/]') + '[\\\\/]([\\w\\.-]+\\.(png|jpg|jpeg|gif|webp))', 'gi');
-    content = content.replace(regex, (match, filename) => {
-      return `![${filename}](/workspace/${filename})`;
-    });
-  }
-  
+  const content = props.message.content || "";
   const rawHtml = marked.parse(content) as string;
+
   return DOMPurify.sanitize(rawHtml);
 });
+
+const hasContent = computed(() => {
+  const content = props.message.content || "";
+  return content.trim().length > 0;
+});
+
 </script>
 
 <style scoped>
@@ -53,7 +49,10 @@ const renderedContent = computed(() => {
   font-size: 14px;
   line-height: 1.6;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
+
 
 .markdown-body :deep(p) {
   margin-top: 0;

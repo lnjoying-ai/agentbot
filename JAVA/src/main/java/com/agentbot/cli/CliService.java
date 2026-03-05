@@ -14,7 +14,9 @@ import com.agentbot.core.ops.LogService;
 
 import com.agentbot.core.workspace.WorkspaceInitializer;
 import com.agentbot.core.automation.AutomationService;
+import com.agentbot.core.util.ConfigPathResolver;
 import org.springframework.boot.ApplicationArguments;
+
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
@@ -35,6 +37,7 @@ public class CliService {
   private final AgentRuntime agentRuntime;
   private final CronService cronService;
   private final AutomationService automationService;
+  private final com.agentbot.core.cron.CronJobStore cronJobStore;
   private final MemorySearch memorySearch;
   private final LogService logService;
 
@@ -45,6 +48,7 @@ public class CliService {
                     AgentRuntime agentRuntime,
                     CronService cronService,
                     AutomationService automationService,
+                    com.agentbot.core.cron.CronJobStore cronJobStore,
                     MemorySearch memorySearch,
                     LogService logService) {
     this.properties = properties;
@@ -54,6 +58,7 @@ public class CliService {
     this.agentRuntime = agentRuntime;
     this.cronService = cronService;
     this.automationService = automationService;
+    this.cronJobStore = cronJobStore;
     this.memorySearch = memorySearch;
     this.logService = logService;
   }
@@ -134,14 +139,10 @@ public class CliService {
       }
     }
     System.out.println("---------------------------------------------------------");
-    System.out.println("  __  __  ____  _      _______ ____   ____ _______ ");
-    System.out.println(" |  \\/  |/ __ \\| |    |__   __|  _ \\ / __ \\__   __|");
-    System.out.println(" | \\  / | |  | | |       | |  | |_) | |  | | | |   ");
-    System.out.println(" | |\\/| | |  | | |       | |  |  _ <| |  | | | |   ");
-    System.out.println(" | |  | | |__| | |____   | |  | |_) | |__| | | |   ");
-    System.out.println(" |_|  |_|\\____/|______|  |_|  |____/ \\____/  |_|   ");
+    System.out.println("AGENTBOT");
     System.out.println("---------------------------------------------------------");
     System.out.println("[OK] Workspace templates initialized: " + templates.keySet());
+
     System.out.println("[OK] Configuration file: " + configPath + " (Exists: " + Files.exists(configPath) + ")");
     System.out.println("\nNext steps:");
 
@@ -160,12 +161,14 @@ public class CliService {
     List<String> registered = new ArrayList<>(channelManager.status().keySet());
     Collections.sort(registered);
     print("status", Map.of(
-        "workspace", properties.getWorkspaceDir(),
-        "configFile", properties.getConfigFile(),
-        "llm", Map.of("provider", properties.getLlm().getProvider(), "model", properties.getLlm().getModel()),
+        "workspace", resolveWorkspaceDir().toString(),
+        "llm", Map.of("provider", properties.getLlm().getProvider(), "model", properties.getLlm().getActiveModel()),
+
         "channels", channels,
         "registeredChannels", registered
     ));
+
+
   }
 
   private void channels(String sub, ApplicationArguments args) {
@@ -254,7 +257,8 @@ public class CliService {
   }
 
   private void workspace(ApplicationArguments args) {
-    Path path = Path.of(properties.getWorkspaceDir());
+    Path path = resolveWorkspaceDir();
+
     if (!Files.exists(path)) {
       print("workspace", Map.of("error", "workspace directory does not exist", "path", path.toAbsolutePath().toString()));
       return;
@@ -338,10 +342,18 @@ public class CliService {
         deliver,
         to,
         channel,
-        () -> automationService.triggerCron(session, message)
+        () -> automationService.triggerCronWithDelivery(
+            session,
+            message,
+            new com.agentbot.core.automation.AutomationService.DeliveryOptions(
+                deliver,
+                channel,
+                to
+            )
+        )
     );
 
-
+    cronJobStore.save(cronService.listJobs());
     print("cron", Map.of("ok", true, "id", job.getId(), "name", job.getName(), "schedule", job.getScheduleType()));
   }
 
@@ -352,6 +364,7 @@ public class CliService {
       return;
     }
     boolean ok = cronService.removeJob(jobId);
+    cronJobStore.save(cronService.listJobs());
     print("cron", Map.of("ok", ok, "id", jobId));
   }
 
@@ -362,6 +375,7 @@ public class CliService {
       return;
     }
     CronJob job = cronService.enableJob(jobId, !disable);
+    cronJobStore.save(cronService.listJobs());
     print("cron", Map.of("ok", job != null, "id", jobId, "enabled", job != null && job.isEnabled()));
   }
 
@@ -387,17 +401,18 @@ public class CliService {
   }
 
   private Path resolveConfigPath() {
-    String env = System.getenv("AGENTBOT_CONFIG");
-    if (env != null && !env.isBlank()) {
-      return Path.of(env);
-    }
-    return Path.of("config", "agentbot.yml");
+    return com.agentbot.core.util.ConfigPathResolver.resolveConfigPath();
+  }
+
+  private Path resolveWorkspaceDir() {
+    return ConfigPathResolver.resolveUserDataDir().resolve("workspace").toAbsolutePath().normalize();
   }
 
   private String defaultConfigTemplate() {
+
     return "agentbot:\n" +
-        "  configFile: \"agentbot-config.json\"\n" +
         "  channels:\n" +
+
         "    telegram:\n" +
         "      enabled: false\n" +
         "      token: \"\"\n" +
@@ -420,16 +435,33 @@ public class CliService {
         "    defaultPrompt: \"\"\n" +
         "  ops:\n" +
         "    logBufferSize: 200\n" +
+        "    chatStreamBufferSize: 50\n" +
+        "  p2p:\n" +
+
+        "    enabled: true\n" +
+        "    port: 190311\n" +
+        "    peersFile: \"peers.yml\"\n" +
+        "    maxNeighbors: 8\n" +
+        "    getaddrLimit: 50\n" +
+        "    getaddrIntervalSeconds: 600\n" +
+        "    getaddrSampleRatio: 0.5\n" +
+        "    getaddrMaxPerMinute: 60\n" +
+        "    getaddrBackoffMaxSeconds: 1800\n" +
+        "    refreshSeconds: 900\n" +
+        "    persistSeconds: 900\n" +
+        "    seeds: []\n" +
+
         "  llm:\n" +
         "    provider: \"openai\"\n" +
-        "    apiKey: \"\"\n" +
-        "    baseUrl: \"https://api.openai.com/v1\"\n" +
-        "    model: \"gpt-4o-mini\"\n" +
         "    temperature: 0.7\n" +
-        "    fallbackOrder: \"openai,openrouter,glm,kimi\"\n" +
+        "    fallbackOrder: \"openai,openrouter,glm,kimi,qwen,minimax\"\n" +
         "    maxToolRounds: 20\n" +
         "    parallelTools: true\n" +
         "    toolParallelism: 4\n" +
+        "    openai:\n" +
+        "      apiKey: \"\"\n" +
+        "      baseUrl: \"https://api.openai.com/v1\"\n" +
+        "      model: \"gpt-4o-mini\"\n" +
         "    openrouter:\n" +
         "      apiKey: \"\"\n" +
         "      baseUrl: \"https://openrouter.ai/api/v1\"\n" +
@@ -442,6 +474,15 @@ public class CliService {
         "      apiKey: \"\"\n" +
         "      baseUrl: \"https://api.moonshot.cn/v1\"\n" +
         "      model: \"\"\n" +
+        "    qwen:\n" +
+        "      apiKey: \"\"\n" +
+        "      baseUrl: \"https://dashscope.aliyuncs.com/compatible-mode/v1\"\n" +
+        "      model: \"\"\n" +
+        "    minimax:\n" +
+        "      apiKey: \"\"\n" +
+        "      baseUrl: \"https://api.minimax.chat/v1\"\n" +
+        "      model: \"\"\n" +
+
         "server:\n" +
         "  port: 8080\n";
   }

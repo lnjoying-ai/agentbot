@@ -4,8 +4,11 @@ import com.agentbot.core.bus.events.InboundMessage;
 import com.agentbot.core.bus.events.OutboundMessage;
 import com.agentbot.core.events.SystemEvent;
 import com.agentbot.core.events.SystemEventBus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -16,7 +19,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 public class SimpleMessageBus implements MessageBus {
+  private static final Logger log = LoggerFactory.getLogger(SimpleMessageBus.class);
   private final BlockingQueue<InboundMessage> inbound = new LinkedBlockingQueue<>();
+
   private final BlockingQueue<OutboundMessage> outbound = new LinkedBlockingQueue<>();
   private final Map<String, List<Consumer<OutboundMessage>>> outboundHandlers = new ConcurrentHashMap<>();
   private final ExecutorService dispatcher = Executors.newSingleThreadExecutor();
@@ -36,6 +41,7 @@ public class SimpleMessageBus implements MessageBus {
   public void publishInbound(InboundMessage message) {
     if (message != null) {
       inbound.offer(message);
+      log.debug("Inbound queued: channel={}, chatId={}", message.getChannel(), message.getChatId());
       publishEvent("inbound.message", Map.of(
           "channel", message.getChannel(),
           "chatId", message.getChatId(),
@@ -46,10 +52,12 @@ public class SimpleMessageBus implements MessageBus {
     }
   }
 
+
   @Override
   public void publishOutbound(OutboundMessage message) {
     if (message != null) {
       outbound.offer(message);
+      log.debug("Outbound queued: channel={}, chatId={}", message.getChannel(), message.getChatId());
       publishEvent("outbound.message", Map.of(
           "channel", message.getChannel(),
           "chatId", message.getChatId(),
@@ -58,6 +66,7 @@ public class SimpleMessageBus implements MessageBus {
       ));
     }
   }
+
 
 
   @Override
@@ -69,6 +78,7 @@ public class SimpleMessageBus implements MessageBus {
   public void start() {
     if (running) return;
     running = true;
+    log.info("SimpleMessageBus started");
     dispatcher.execute(() -> {
       while (running) {
         try {
@@ -77,8 +87,8 @@ public class SimpleMessageBus implements MessageBus {
           for (Consumer<OutboundMessage> handler : handlers) {
             try {
               handler.accept(message);
-            } catch (Exception ignored) {
-              // ignore handler failures
+            } catch (Exception error) {
+              log.warn("Outbound handler failed: channel={}", message.getChannel(), error);
             }
           }
         } catch (InterruptedException interrupted) {
@@ -89,11 +99,14 @@ public class SimpleMessageBus implements MessageBus {
     });
   }
 
+
   @Override
   public void stop() {
     running = false;
     dispatcher.shutdownNow();
+    log.info("SimpleMessageBus stopped");
   }
+
 
   private void publishEvent(String type, Map<String, Object> payload) {
     if (eventBus == null) return;

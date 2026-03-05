@@ -23,17 +23,29 @@ public class OpsConfiguration {
   @Bean
   public ConfigStore configStore(AgentbotProperties properties) {
     ObjectMapper yamlMapper = new YAMLMapper();
-    String env = System.getenv("AGENTBOT_CONFIG");
-    Path path = (env != null && !env.isBlank()) ? Path.of(env) : Path.of("config", "agentbot.yml");
+    Path path = com.agentbot.core.util.ConfigPathResolver.resolveConfigPath();
     return new ConfigStore(yamlMapper, path);
   }
 
 
+  @Bean
+  public com.agentbot.core.cron.CronJobStore cronJobStore(ConfigStore configStore) {
+    ObjectMapper mapper = new YAMLMapper();
+    Path configDir = configStore.getConfigPath().getParent();
+    if (configDir == null) {
+      configDir = Path.of("config");
+    }
+    Path storePath = configDir.resolve("cron-jobs.yml");
+    return new com.agentbot.core.cron.CronJobStore(mapper, storePath);
+  }
+
 
   @Bean
   public WorkspaceInitializer workspaceInitializer(AgentbotProperties properties) {
-    return new WorkspaceInitializer(Path.of(properties.getWorkspaceDir()));
+    Path workspaceDir = com.agentbot.core.util.ConfigPathResolver.resolveUserDataDir().resolve("workspace").toAbsolutePath().normalize();
+    return new WorkspaceInitializer(workspaceDir);
   }
+
 
   @Bean(destroyMethod = "unsubscribe")
   public SystemEventBus.Subscription logSubscription(SystemEventBus eventBus, LogService logService) {

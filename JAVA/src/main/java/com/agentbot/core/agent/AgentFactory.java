@@ -1,5 +1,6 @@
 package com.agentbot.core.agent;
 
+import com.agentbot.config.AgentbotProperties;
 import com.agentbot.core.memory.MemoryService;
 import com.agentbot.core.memory.MemoryStore;
 import com.agentbot.core.model.LLMProvider;
@@ -32,6 +33,7 @@ public class AgentFactory {
   private static final Logger log = LoggerFactory.getLogger(AgentFactory.class);
   
   private final Path workspacePath;
+  private final AgentbotProperties properties;
   private final LLMProvider llmProvider;
   private final ToolRegistry systemTools;
   private final SkillLoader systemSkills;
@@ -41,6 +43,7 @@ public class AgentFactory {
   
   public AgentFactory(
       Path workspacePath,
+      AgentbotProperties properties,
       LLMProvider llmProvider,
       ToolRegistry systemTools,
       SkillLoader systemSkills,
@@ -50,6 +53,7 @@ public class AgentFactory {
   ) {
 
     this.workspacePath = workspacePath;
+    this.properties = properties;
     this.llmProvider = llmProvider;
     this.systemTools = systemTools;
     this.systemSkills = systemSkills;
@@ -139,12 +143,11 @@ public class AgentFactory {
     // Add agent-specific memory tools
     addMemoryTools(tools, memoryStore, memory);
     
-    // 6. Determine LLM configuration
-    int maxToolRounds = config.getLlm().getMaxToolRounds() > 0 
-        ? config.getLlm().getMaxToolRounds() : 5;
-    boolean parallelTools = config.getLlm().isParallelTools();
-    int toolParallelism = config.getLlm().getToolParallelism() > 0 
-        ? config.getLlm().getToolParallelism() : 4;
+    // 6. Determine LLM configuration (global from agentbot.yml)
+    AgentbotProperties.Llm llmConfig = properties.getLlm();
+    int maxToolRounds = llmConfig.getMaxToolRounds();
+    boolean parallelTools = llmConfig.isParallelTools();
+    int toolParallelism = llmConfig.getToolParallelism();
     
     // 7. Create runtime
     AgentRuntime runtime = new DefaultAgentRuntime(

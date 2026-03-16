@@ -16,13 +16,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+
 public class OpenAiCompatibleProvider implements LLMProvider {
   private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleProvider.class);
   private final String baseUrl;
 
+
+
   private final String apiKey;
   private final String model;
   private final double temperature;
+  private final boolean logHttpRequest;
+  private final boolean logHttpResponse;
   private final Map<String, String> extraHeaders;
   private final ObjectMapper mapper = new ObjectMapper();
   private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
@@ -32,14 +38,19 @@ public class OpenAiCompatibleProvider implements LLMProvider {
       String apiKey,
       String model,
       double temperature,
+      boolean logHttpRequest,
+      boolean logHttpResponse,
       Map<String, String> extraHeaders
   ) {
-    this.baseUrl = baseUrl;
+    this.baseUrl = normalizeBaseUrl(baseUrl);
     this.apiKey = apiKey;
     this.model = model;
     this.temperature = temperature;
+    this.logHttpRequest = logHttpRequest;
+    this.logHttpResponse = logHttpResponse;
     this.extraHeaders = extraHeaders == null ? Map.of() : extraHeaders;
   }
+
 
   @Override
   public LLMResponse chat(List<Map<String, Object>> messages, List<Map<String, Object>> tools) {
@@ -55,7 +66,10 @@ public class OpenAiCompatibleProvider implements LLMProvider {
       }
 
     String body = mapper.writeValueAsString(payload);
-    log.debug("LLM request payload: url={}", baseUrl);
+    if (logHttpRequest) {
+      String formattedRequestBody = formatJsonBody(body);
+      log.debug("LLM request payload: url={}, body={}", baseUrl, formattedRequestBody);
+    }
 
     HttpRequest.Builder builder = HttpRequest.newBuilder()
         .uri(URI.create(baseUrl))
@@ -73,11 +87,19 @@ public class OpenAiCompatibleProvider implements LLMProvider {
     long duration = System.currentTimeMillis() - start;
 
     String formattedBody = formatJsonBody(response.body());
-    log.debug("LLM response: status={}, duration={}ms, body={}", response.statusCode(), duration, formattedBody);
+    if (logHttpResponse) {
+      log.debug("LLM response: model={}, status={}, duration={}ms, body={}", model, response.statusCode(), duration, formattedBody);
+    } else {
+      log.debug("LLM response: model={}, status={}, duration={}ms", model, response.statusCode(), duration);
+    }
 
 
     if (response.statusCode() != 200) {
-      log.error("LLM error: status={}, body={}", response.statusCode(), response.body());
+      if (logHttpResponse) {
+        log.error("LLM error: status={}, body={}", response.statusCode(), response.body());
+      } else {
+        log.error("LLM error: status={}", response.statusCode());
+      }
       return new LLMResponse(buildErrorContent(response.statusCode(), response.body()), List.of());
     }
 
@@ -104,6 +126,20 @@ public class OpenAiCompatibleProvider implements LLMProvider {
       return raw;
     }
   }
+
+  private String normalizeBaseUrl(String raw) {
+    if (raw == null) return "";
+    String trimmed = raw.trim();
+    if (trimmed.isEmpty()) return "";
+    if (trimmed.endsWith("/chat/completions") || trimmed.endsWith("/text/chatcompletion_v2")) {
+      return trimmed;
+    }
+    if (trimmed.endsWith("/")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    }
+    return trimmed + "/chat/completions";
+  }
+
 
   private String buildErrorContent(int status, String rawBody) {
     ErrorInfo error = parseErrorInfo(rawBody);
@@ -187,6 +223,8 @@ public class OpenAiCompatibleProvider implements LLMProvider {
       }
     }
     return new LLMResponse(content, reasoningContent, toolCalls);
+
+
   }
 
 }

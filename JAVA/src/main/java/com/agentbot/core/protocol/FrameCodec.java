@@ -15,9 +15,7 @@ public class FrameCodec {
       throw new IllegalArgumentException("Negative frame length");
     }
     long totalLength = 8L + headerLength + payloadLength;
-    if (totalLength > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Frame too large: " + totalLength);
-    }
+
     if (totalLength > MAX_FRAME_SIZE) {
       throw new IllegalArgumentException("Frame exceeds max size: " + totalLength);
     }

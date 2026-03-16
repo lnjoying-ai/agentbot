@@ -164,7 +164,7 @@ warnings.filterwarnings('ignore')
 sys.stdout.reconfigure(encoding='utf-8')
 
 # File path with Chinese characters
-file_path = r'D:\\work\\秒如\\战略规划\\2026\\跟踪事项\\快速参考表.xlsx'
+file_path = r'D:\\work\\快速参考表.xlsx'
 output_file = 'excel_content.txt'
 
 try:

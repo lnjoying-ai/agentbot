@@ -225,6 +225,7 @@ public class P2pConnection {
     if (initiator) {
       sendHandshake();
     }
+
     scheduleRetries();
     startHeartbeat();
   }
@@ -650,7 +651,6 @@ public class P2pConnection {
     }
   }
 
-
   private void handleVersion(VersionMessage version) {
     if (state != State.SECURE || secureChannel == null || sessionKeys == null) {
       log.warn("P2P version in invalid state, closing: state={}, remote={}:{}, initiator={}", state, remoteHost(), remotePort(), initiator);
@@ -695,7 +695,6 @@ public class P2pConnection {
     }
     negotiatedFlowWindow = selectFlowWindow(version.getFlowControl());
     negotiatedMaxInFlight = selectMaxInFlight(version.getFlowControl());
-
 
     if (candidateCipher == null && settings.isRequireEncryption()) {
       log.warn("P2P no common cipher, rejecting: remoteNodeId={}", remoteNodeId);
@@ -832,7 +831,6 @@ public class P2pConnection {
       return;
     }
 
-
     negotiatedFlowWindow = verack == null ? negotiatedFlowWindow : verack.getFlowWindow();
     negotiatedMaxInFlight = verack == null ? negotiatedMaxInFlight : verack.getMaxInFlight();
 
@@ -900,7 +898,6 @@ public class P2pConnection {
     long now = System.currentTimeMillis();
     lastPingReceivedMs = now;
     heartbeatTask = HEARTBEAT_SCHEDULER.scheduleAtFixedRate(this::heartbeatTick, HEARTBEAT_INTERVAL_MS, HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS);
-
   }
 
   private void heartbeatTick() {

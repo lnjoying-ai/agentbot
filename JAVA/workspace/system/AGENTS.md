@@ -158,6 +158,7 @@ workspace/
 ├── agents/          # Per-agent working directories
 ├── sessions/        # Session history (JSONL format)
 ├── skills/          # Skill definitions and prompts
+├── system/          # system definitions and prompts with system skill
 └── AGENTS.md        # This file (loaded into system prompt)
 ```
 

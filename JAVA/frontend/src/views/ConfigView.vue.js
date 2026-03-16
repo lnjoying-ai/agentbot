@@ -2,7 +2,9 @@
 import { computed, onMounted, reactive } from "vue";
 import { useConfigStore } from "../store/config";
 import ConfigNode from "../components/ConfigNode.vue";
+import { useI18n } from "../i18n";
 const config = useConfigStore();
+const { t } = useI18n();
 const draft = reactive({ serverBaseUrl: config.state.serverBaseUrl });
 const draftConfig = reactive({});
 const clone = (value) => JSON.parse(JSON.stringify(value ?? {}));
@@ -33,7 +35,7 @@ const save = async () => {
     config.state.serverBaseUrl = draft.serverBaseUrl;
     config.state.config = clone(draftConfig);
     await config.save();
-    alert("配置已保存并同步至服务器");
+    alert(t("config.saved"));
 };
 const reset = async () => {
     await config.fetch();
@@ -48,6 +50,12 @@ const formatLabel = (raw) => {
         .replace(/\s+/g, " ")
         .trim();
 };
+const translateLabel = (raw) => {
+    const normalized = raw.replace(/[\s_-]/g, "").toLowerCase();
+    const key = `config.label.${normalized}`;
+    const translated = t(key);
+    return translated === key ? formatLabel(raw) : translated;
+};
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -59,11 +67,13 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElemen
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("config.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("config.core"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-grid" },
 });
@@ -71,6 +81,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("config.baseUrl"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "http://localhost:8080",
 });
@@ -80,8 +91,9 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("config.configPath"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    value: (__VLS_ctx.config.state.configPath || '未获取'),
+    value: (__VLS_ctx.config.state.configPath || __VLS_ctx.t('config.notAvailable')),
     disabled: true,
 });
 if (__VLS_ctx.categoryEntries.length === 0) {
@@ -90,9 +102,11 @@ if (__VLS_ctx.categoryEntries.length === 0) {
         ...{ style: {} },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+    (__VLS_ctx.t("config.loadingTitle"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("config.loadingDesc"));
 }
 for (const [[categoryKey, categoryValue]] of __VLS_getVForSourceType((__VLS_ctx.categoryEntries))) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -105,10 +119,11 @@ for (const [[categoryKey, categoryValue]] of __VLS_getVForSourceType((__VLS_ctx.
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
-    (__VLS_ctx.formatLabel(String(categoryKey)));
+    (__VLS_ctx.translateLabel(String(categoryKey)));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("config.categoryDesc"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "config-grid" },
     });
@@ -171,9 +186,11 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "card" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("config.saveTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ style: {} },
 });
+(__VLS_ctx.t("config.saveDesc"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "config-actions" },
 });
@@ -181,10 +198,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ onClick: (__VLS_ctx.save) },
     ...{ class: "button" },
 });
+(__VLS_ctx.t("common.save"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.reset) },
     ...{ class: "button secondary" },
 });
+(__VLS_ctx.t("common.reload"));
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-grid']} */ ;
@@ -207,12 +226,13 @@ const __VLS_self = (await import('vue')).defineComponent({
         return {
             ConfigNode: ConfigNode,
             config: config,
+            t: t,
             draft: draft,
             categoryEntries: categoryEntries,
             updatePath: updatePath,
             save: save,
             reset: reset,
-            formatLabel: formatLabel,
+            translateLabel: translateLabel,
             isObject: isObject,
         };
     },

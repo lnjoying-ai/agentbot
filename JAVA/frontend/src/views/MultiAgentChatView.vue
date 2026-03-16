@@ -1,6 +1,7 @@
 <template>
   <section class="multi-agent-chat">
-    <h2 class="section-title">多 Agent 对话</h2>
+    <h2 class="section-title">{{ t("chat.title.multiAgent") }}</h2>
+
     <div class="chat-container">
       <!-- Left: Agent Selector -->
       <AgentSelector class="agent-sidebar" @select="handleAgentSelect" />
@@ -14,14 +15,16 @@
 
           </div>
           <div class="chat-actions">
-            <button class="btn-icon" @click="handleLoadHistory" :disabled="!agentStore.currentAgentId.value || currentHistoryLoading" title="加载历史" aria-label="加载历史">
+            <button class="btn-icon" @click="handleLoadHistory" :disabled="!agentStore.currentAgentId.value || currentHistoryLoading" :title="t('chat.loadHistory')" :aria-label="t('chat.loadHistory')">
+
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                 <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 <path d="M20 4v4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button class="btn-icon" @click="clearChat" title="清空对话" aria-label="清空对话">
+            <button class="btn-icon" @click="clearChat" :title="t('chat.clearChat')" :aria-label="t('chat.clearChat')">
+
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4 7h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 <path d="M9 7V5h6v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -34,16 +37,18 @@
 
         
         <div ref="chatStreamRef" class="chat-stream" @scroll.passive="handleScroll">
-          <div v-if="currentHistoryLoading" class="history-loading">加载历史中...</div>
-          <div v-else-if="!currentHistoryHasMore && currentMessages.length" class="history-end">已到达最早记录</div>
+          <div v-if="currentHistoryLoading" class="history-loading">{{ t("chat.loadingHistory") }}</div>
+          <div v-else-if="!currentHistoryHasMore && currentMessages.length" class="history-end">{{ t("chat.historyEnd") }}</div>
+
           <ChatMessage 
             v-for="msg in currentMessages" 
             :key="msg.id" 
             :message="msg" 
           />
           <div v-if="currentMessages.length === 0" class="empty-chat">
-            <p>开始与 {{ agentStore.currentAgent.value?.name || 'Agent' }} 对话</p>
+            <p>{{ t("chat.startWith", { name: agentStore.currentAgent.value?.name || t("chat.role.assistant") }) }}</p>
           </div>
+
         </div>
 
 
@@ -61,6 +66,8 @@ import { computed, onMounted, watch, ref, nextTick, onBeforeUnmount, reactive } 
 
 
 import ChatMessage from "../components/ChatMessage.vue";
+import { useI18n } from "../i18n";
+
 import ChatComposer from "../components/ChatComposer.vue";
 import AgentSelector from "../components/AgentSelector.vue";
 import AgentInfoPanel from "../components/AgentInfoPanel.vue";
@@ -71,6 +78,8 @@ import { useConfigStore } from "../store/config";
 const agentStore = useAgentStore();
 const chat = useChatStore();
 const config = useConfigStore();
+const { t } = useI18n();
+
 
 
 const chatStreamRef = ref<HTMLDivElement | null>(null);
@@ -133,8 +142,9 @@ watch(currentMessages, () => {
 
 const currentAgentName = computed(() => {
   const agent = agentStore.currentAgent.value;
-  return agent?.displayName || agent?.name || agent?.id || '未选择';
+  return agent?.displayName || agent?.name || agent?.id || t("chat.noAgentSelected");
 });
+
 
 const currentAgentStatus = computed(() => {
   const agent = agentStore.currentAgent.value;
@@ -347,7 +357,8 @@ watch(agentStore.agents, () => {
 async function sendMessage(text: string) {
   const agentId = agentStore.currentAgentId.value;
   if (!agentId) {
-    alert('请先选择一个 Agent');
+    alert(t("chat.selectAgentFirst"));
+
     return;
   }
   
@@ -378,7 +389,8 @@ async function sendMessage(text: string) {
     agentStore.addMessage(agentId, {
       id: Date.now().toString(),
       role: 'assistant',
-      content: '抱歉，由于网络或后端服务异常，我暂时无法处理您的请求。',
+      content: t("chat.sendFailed"),
+
       timestamp: new Date().toISOString()
     }, { suppressUnread: true });
   }
@@ -389,7 +401,8 @@ async function sendMessage(text: string) {
 
 
 function clearChat() {
-  if (confirm('确定要清空当前对话吗？')) {
+  if (confirm(t("chat.confirmClear"))) {
+
     const conv = agentStore.conversations.get(agentStore.currentAgentId.value);
     if (conv) {
       conv.messages = [];

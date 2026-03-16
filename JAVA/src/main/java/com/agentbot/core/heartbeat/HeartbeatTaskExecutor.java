@@ -1,8 +1,9 @@
 package com.agentbot.core.heartbeat;
 
-import com.agentbot.core.agent.AgentRuntime;
+import com.agentbot.core.agent.AgentInstance;
 import com.agentbot.core.bus.events.InboundMessage;
 import com.agentbot.core.bus.events.OutboundMessage;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -14,13 +15,15 @@ import org.springframework.stereotype.Component;
 public class HeartbeatTaskExecutor {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatTaskExecutor.class);
     
-    private final AgentRuntime agentRuntime;
+    private final AgentInstance defaultAgent;
+
     private static final String HEARTBEAT_CHANNEL = "system";
     private static final String HEARTBEAT_CHAT_ID = "heartbeat";
     
-    public HeartbeatTaskExecutor(AgentRuntime agentRuntime) {
-        this.agentRuntime = agentRuntime;
+    public HeartbeatTaskExecutor(AgentInstance defaultAgent) {
+        this.defaultAgent = defaultAgent;
     }
+
     
     /**
      * Execute a heartbeat task by sending it to the agent as a system message.
@@ -41,7 +44,8 @@ public class HeartbeatTaskExecutor {
         
         // Execute via agent runtime
         try {
-            OutboundMessage response = agentRuntime.handle(message);
+            OutboundMessage response = defaultAgent.handle(message);
+
             
             if (response != null) {
                 log.info("Heartbeat task completed: {} - Response: {}", 

@@ -52,12 +52,13 @@ public class ShellTool implements ToolWithDefinition {
 
             if (os.contains("win")) {
                 String powerShellScript = extractPowerShellScript(command);
-                if (powerShellScript != null) {
+                if (powerShellScript != null || containsNonAscii(command)) {
+                    String script = powerShellScript != null ? powerShellScript : command;
                     pb = new ProcessBuilder(
                         "powershell",
                         "-NoProfile",
                         "-Command",
-                        buildPowerShellCommand(powerShellScript)
+                        buildPowerShellCommand(script)
                     );
                 } else {
                     String wrapped = "chcp 65001 >NUL & " + command;
@@ -65,6 +66,7 @@ public class ShellTool implements ToolWithDefinition {
                 }
                 outputCharset = StandardCharsets.UTF_8;
             } else if (os.contains("mac")) {
+
                 // MacOS: Use zsh (default since Catalina) or fallback to sh
                 pb = new ProcessBuilder("zsh", "-c", command);
             } else {
@@ -74,7 +76,13 @@ public class ShellTool implements ToolWithDefinition {
 
             
             pb.redirectErrorStream(true);
+            if (os.contains("win")) {
+                Map<String, String> env = pb.environment();
+                env.putIfAbsent("PYTHONIOENCODING", "utf-8");
+                env.putIfAbsent("PYTHONUTF8", "1");
+            }
             Process process = pb.start();
+
 
             // Read output using negotiated charset
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), outputCharset))) {
@@ -104,7 +112,18 @@ public class ShellTool implements ToolWithDefinition {
             + safeScript;
     }
 
+    private boolean containsNonAscii(String command) {
+        if (command == null || command.isEmpty()) return false;
+        for (int i = 0; i < command.length(); i++) {
+            if (command.charAt(i) > 127) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String extractPowerShellScript(String command) {
+
         if (command == null) return null;
         String trimmed = command.trim();
         if (trimmed.isEmpty()) return null;

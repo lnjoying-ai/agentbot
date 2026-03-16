@@ -1,3 +1,3 @@
 # Agents
 
-- default: 总控代理
+- default: 默认代理

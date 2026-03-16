@@ -151,7 +151,6 @@ public class PeerDiscoveryManager {
   }
 
 
-
   public void rotateConnections(int maxNeighbors) {
     if (registry == null) return;
     long now = System.currentTimeMillis();

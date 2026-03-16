@@ -43,11 +43,49 @@ a {
   min-height: 100vh;
 }
 
+.app-shell.collapsed {
+  grid-template-columns: 88px 1fr;
+}
+
 .side-nav {
   padding: 28px 22px;
   border-right: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(18, 26, 47, 0.95), rgba(10, 14, 26, 0.98));
 }
+
+.side-nav.collapsed {
+  padding: 24px 12px;
+}
+
+.side-nav.collapsed .brand {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-nav.collapsed .brand-main {
+  width: auto;
+  justify-content: center;
+}
+
+
+.side-nav.collapsed .brand-title {
+  display: none;
+}
+
+.side-nav.collapsed .nav-list {
+  gap: 12px;
+}
+
+.side-nav.collapsed .nav-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.side-nav.collapsed .nav-label {
+  display: none;
+}
+
 
 .brand {
   display: flex;
@@ -98,9 +136,10 @@ a {
 .main-area {
   display: flex;
   flex-direction: column;
-  padding: 24px 32px 40px;
+  padding: 28px 32px 40px;
   gap: 24px;
 }
+
 
 .top-bar {
   display: flex;
@@ -113,14 +152,22 @@ a {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
 }
+
 
 .badge {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(111, 140, 255, 0.08);
+  border: 1px solid rgba(111, 140, 255, 0.2);
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+.badge:hover {
+  background: rgba(111, 140, 255, 0.16);
 }
 
 .health-ok {
@@ -137,6 +184,7 @@ a {
   color: #2b0f0f;
   background: rgba(255, 107, 107, 0.92);
 }
+
 
 .card-grid {
   display: grid;
@@ -250,9 +298,15 @@ a {
 }
 
 .button.secondary {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(111, 140, 255, 0.08);
   color: var(--text);
+  border: 1px solid rgba(111, 140, 255, 0.2);
 }
+
+.button.secondary:hover {
+  background: rgba(111, 140, 255, 0.16);
+}
+
 
 .chat-sidebar {
   display: flex;

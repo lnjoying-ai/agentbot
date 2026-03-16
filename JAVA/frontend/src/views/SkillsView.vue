@@ -2,46 +2,46 @@
   <section class="skills-view">
     <div class="header">
       <div>
-        <h2 class="section-title">技能中心</h2>
-        <p class="subtitle">展示所有已发现的技能，支持搜索、启用/安装、配置密钥</p>
+        <h2 class="section-title">{{ t("skills.title") }}</h2>
+        <p class="subtitle">{{ t("skills.subtitle") }}</p>
       </div>
       <div class="header-actions">
-        <input v-model="search" class="search" placeholder="搜索技能名称或描述" />
-        <button class="btn" @click="refresh" :disabled="loading">刷新</button>
+        <input v-model="search" class="search" :placeholder="t('skills.searchPlaceholder')" />
+        <button class="btn" @click="refresh" :disabled="loading">{{ t("common.refresh") }}</button>
       </div>
     </div>
 
     <div class="content">
       <div class="summary">
-        <div class="pill pill-primary">共 {{ skillsData?.available?.length || 0 }} 个技能</div>
-        <div v-if="blockedCount" class="pill pill-warning">阻塞 {{ blockedCount }} 个</div>
-        <div v-if="installableCount" class="pill pill-warning">可安装 {{ installableCount }} 个</div>
+        <div class="pill pill-primary">{{ t("skills.totalCount", { count: skillsData?.available?.length || 0 }) }}</div>
+        <div v-if="blockedCount" class="pill pill-warning">{{ t("skills.blockedCount", { count: blockedCount }) }}</div>
+        <div v-if="installableCount" class="pill pill-warning">{{ t("skills.installableCount", { count: installableCount }) }}</div>
       </div>
 
-      <div v-if="loading" class="muted center">加载中...</div>
-      <div v-else-if="!filteredSkills.length" class="muted center">未发现技能</div>
+      <div v-if="loading" class="muted center">{{ t("common.loading") }}</div>
+      <div v-else-if="!filteredSkills.length" class="muted center">{{ t("skills.empty") }}</div>
       <div v-else class="grid">
         <div v-for="skill in filteredSkills" :key="skill.name" class="card">
           <div class="card-header">
             <div class="title-row">
               <div class="skill-name">{{ skill.name }}</div>
               <span class="pill" :class="skill.blocked ? 'pill-warning' : 'pill-success'">
-                {{ skill.blocked ? '阻塞' : '可用' }}
+                {{ skill.blocked ? t("common.blocked") : t("common.available") }}
               </span>
-              <span v-if="canInstall(skill)" class="pill pill-warning">可安装</span>
+              <span v-if="canInstall(skill)" class="pill pill-warning">{{ t("common.installable") }}</span>
             </div>
-            <div class="meta">来源：{{ skill.source || 'unknown' }}</div>
+            <div class="meta">{{ t("skills.sourceLabel", { value: skill.source || t("common.unknown") }) }}</div>
           </div>
-          <div class="desc">{{ skill.description || '暂无描述' }}</div>
-          <div v-if="missingText(skill)" class="missing">缺失：{{ missingText(skill) }}</div>
+          <div class="desc">{{ skill.description || t("common.noDescription") }}</div>
+          <div v-if="missingText(skill)" class="missing">{{ t("skills.missing", { value: missingText(skill) }) }}</div>
 
           <div class="actions">
             <div class="inline">
               <label class="toggle">
                 <input type="checkbox" :checked="isSkillEnabled(skill.name)" @change="onToggleSkill(skill.name, $event)" />
-                <span>启用</span>
+                <span>{{ t("skills.enable") }}</span>
               </label>
-              <button class="btn small" @click="openDetail(skill)" :disabled="loading">查看详情</button>
+              <button class="btn small" @click="openDetail(skill)" :disabled="loading">{{ t("common.viewDetails") }}</button>
               <button v-if="canInstall(skill)" class="btn small" @click="onInstallSkill(skill)" :disabled="loading">{{ installLabel(skill) }}</button>
             </div>
 
@@ -50,16 +50,16 @@
                 type="password"
                 :value="apiKeyDraft[skill.name] || ''"
                 @input="e => onEditApiKey(skill.name, (e.target as HTMLInputElement).value)"
-                :placeholder="`API Key (${skill.primaryEnv})`"
+                :placeholder="t('skills.apiKeyPlaceholder', { env: skill.primaryEnv })"
               />
-              <button class="btn small" @click="onSaveSkill(skill.name)" :disabled="loading || saving === skill.name">保存</button>
+              <button class="btn small" @click="onSaveSkill(skill.name)" :disabled="loading || saving === skill.name">{{ t("common.save") }}</button>
             </div>
             <div class="field">
               <textarea
                 class="env"
                 :value="envDraft[skill.name] || ''"
                 @input="e => onEditEnv(skill.name, (e.target as HTMLTextAreaElement).value)"
-                placeholder='环境变量 JSON，如 {"BASE_URL":"https://api"}'
+                :placeholder="t('skills.envPlaceholder')"
                 rows="3"
               ></textarea>
             </div>
@@ -72,18 +72,18 @@
         <div class="detail-header">
           <div>
             <h3>{{ detail.skill.name }}</h3>
-            <p class="muted">{{ detail.skill.description || '暂无描述' }}</p>
+            <p class="muted">{{ detail.skill.description || t("common.noDescription") }}</p>
           </div>
-          <button class="btn small" @click="closeDetail">关闭</button>
+          <button class="btn small" @click="closeDetail">{{ t("common.close") }}</button>
         </div>
         <div class="detail-meta">
-          <div>来源：{{ detail.skill.source || 'unknown' }}</div>
-          <div>状态：{{ detail.skill.blocked ? '阻塞' : '可用' }}</div>
+          <div>{{ t("skills.sourceLabel", { value: detail.skill.source || t("common.unknown") }) }}</div>
+          <div>{{ t("skills.statusLabel", { value: detail.skill.blocked ? t("common.blocked") : t("common.available") }) }}</div>
         </div>
         <div class="detail-body">
           <div class="detail-section">
-            <div class="detail-title">SKILL.md</div>
-            <pre class="detail-content">{{ detail.content || '暂无内容' }}</pre>
+            <div class="detail-title">{{ t("skills.readmeTitle") }}</div>
+            <pre class="detail-content">{{ detail.content || t("common.noContent") }}</pre>
           </div>
         </div>
       </div>
@@ -95,8 +95,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, toRefs, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from '../i18n';
 
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const loading = ref(false);
 const saving = ref<string | null>(null);
 const search = ref('');
@@ -110,7 +112,6 @@ const { apiKeyDraft, envDraft } = toRefs(state);
 
 const skillsData = computed(() => agentStore.agentSkills.get(currentAgentId.value) || null);
 const detail = ref<{ skill: any; content: string } | null>(null);
-
 
 const filteredSkills = computed(() => {
   const list = skillsData.value?.available || [];
@@ -177,7 +178,7 @@ function canInstall(skill: any) {
 
 function installLabel(skill: any) {
   const option = skill?.install?.[0];
-  return option?.label || '安装';
+  return option?.label || t('common.install');
 }
 
 function missingText(skill: any) {
@@ -226,7 +227,7 @@ async function onSaveSkill(name: string) {
     try {
       patch.env = JSON.parse(envText);
     } catch (e) {
-      alert('环境变量需要合法的 JSON 格式');
+      alert(t('skills.envInvalid'));
       saving.value = null;
       return;
     }
@@ -273,6 +274,7 @@ function closeDetail() {
   detail.value = null;
 }
 </script>
+
 
 
 <style scoped>

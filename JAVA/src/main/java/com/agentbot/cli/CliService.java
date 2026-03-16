@@ -436,7 +436,13 @@ public class CliService {
         "  ops:\n" +
         "    logBufferSize: 200\n" +
         "    chatStreamBufferSize: 50\n" +
+        "  search:\n" +
+        "    type: \"bocha\"\n" +
+        "    braveApiKey: \"\"\n" +
+        "    bochaApiKey: \"\"\n" +
+        "    apimeshKey: \"\"\n" +
         "  p2p:\n" +
+
 
         "    enabled: true\n" +
         "    port: 190311\n" +
@@ -454,11 +460,18 @@ public class CliService {
         "  llm:\n" +
         "    provider: \"openai\"\n" +
         "    temperature: 0.7\n" +
-        "    fallbackOrder: \"openai,openrouter,glm,kimi,qwen,minimax\"\n" +
+        "    fallbackOrder: \"openai,openrouter,glm,kimi,qwen,minimax,apimesh\"\n" +
         "    maxToolRounds: 20\n" +
         "    parallelTools: true\n" +
         "    toolParallelism: 4\n" +
+        "    logHttpRequest: false\n" +
+        "    logHttpResponse: true\n" +
+        "    apimesh:\n" +
+        "      apiKey: \"\"\n" +
+        "      baseUrl: \"https://api.apimesh.io/api/v1/chat/completions\"\n" +
+        "      model: \"kimi-k2.5\"\n" +
         "    openai:\n" +
+
         "      apiKey: \"\"\n" +
         "      baseUrl: \"https://api.openai.com/v1\"\n" +
         "      model: \"gpt-4o-mini\"\n" +

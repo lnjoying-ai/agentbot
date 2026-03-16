@@ -228,7 +228,6 @@ public class P2pChatHandler implements ProtocolHandler {
     }
 
 
-
     if (shouldForward(message)) {
       AgentChatMessage forward = copyChat(message);
       updateForwardState(forward);
@@ -318,7 +317,8 @@ public class P2pChatHandler implements ProtocolHandler {
     if (sender == null || sender.isBlank()) {
       sender = message.getFromNodeId();
     }
-    String chatId = buildChatId(message.getFromNodeId(), message.getFromAgentId());
+    String chatId = buildChatId(message.getFromAgentId(), message.getToNodeId(), message.getToAgentId());
+
 
     Map<String, Object> metadata = new java.util.HashMap<>();
     metadata.put("agentId", resolveLocalAgentId(message.getToAgentId()));
@@ -526,8 +526,9 @@ public class P2pChatHandler implements ProtocolHandler {
     Map<String, Object> payload = new HashMap<>();
     payload.put("direction", "outbound");
     payload.put("channel", CHANNEL_P2P);
-    payload.put("chatId", buildChatId(message.getToNodeId(), message.getToAgentId()));
+    payload.put("chatId", buildChatId(message.getFromAgentId(), message.getToNodeId(), message.getToAgentId()));
     payload.put("content", content);
+
     payload.put("timestamp", message.getTimestamp());
 
     payload.put("msgId", message.getMsgId());
@@ -545,7 +546,8 @@ public class P2pChatHandler implements ProtocolHandler {
     Map<String, Object> payload = new HashMap<>();
     payload.put("direction", "inbound");
     payload.put("channel", CHANNEL_P2P);
-    payload.put("chatId", buildChatId(message.getFromNodeId(), message.getFromAgentId()));
+    payload.put("chatId", buildChatId(message.getFromAgentId(), message.getToNodeId(), message.getToAgentId()));
+
     payload.put("content", message.getPayload());
     payload.put("timestamp", message.getTimestamp());
     payload.put("msgId", message.getMsgId());
@@ -568,7 +570,8 @@ public class P2pChatHandler implements ProtocolHandler {
     payload.put("timestamp", ack.getTimestamp());
     payload.put("status", "ACKED");
     if (pendingChat != null && pendingChat.message != null) {
-      payload.put("chatId", buildChatId(pendingChat.message.getToNodeId(), pendingChat.message.getToAgentId()));
+      payload.put("chatId", buildChatId(pendingChat.message.getFromAgentId(), pendingChat.message.getToNodeId(), pendingChat.message.getToAgentId()));
+
       payload.put("toAgentId", pendingChat.message.getToAgentId());
       payload.put("fromAgentId", pendingChat.message.getFromAgentId());
     }
@@ -586,12 +589,13 @@ public class P2pChatHandler implements ProtocolHandler {
     payload.put("status", "NACKED");
     payload.put("reason", nack.getReason());
     if (pendingChat != null && pendingChat.message != null) {
-      payload.put("chatId", buildChatId(pendingChat.message.getToNodeId(), pendingChat.message.getToAgentId()));
+      payload.put("chatId", buildChatId(pendingChat.message.getFromAgentId(), pendingChat.message.getToNodeId(), pendingChat.message.getToAgentId()));
       payload.put("toAgentId", pendingChat.message.getToAgentId());
       payload.put("fromAgentId", pendingChat.message.getFromAgentId());
     }
     publishChatEvent("p2p.chat.nack", payload);
   }
+
 
   private void publishChatEvent(String type, Map<String, Object> payload) {
     if (eventBus == null) return;
@@ -725,12 +729,25 @@ public class P2pChatHandler implements ProtocolHandler {
     String agentId = stringValue(metadata, "toAgentId");
     if ((nodeId == null || nodeId.isBlank()) && chatId != null && chatId.startsWith(CHAT_ID_PREFIX)) {
       String raw = chatId.substring(CHAT_ID_PREFIX.length());
-      String[] parts = raw.split(":", 2);
-      if (parts.length > 0 && !parts[0].isBlank() && !CHAT_ID_EMPTY.equals(parts[0])) {
-        nodeId = parts[0];
-      }
-      if (parts.length == 2 && !parts[1].isBlank() && !CHAT_ID_EMPTY.equals(parts[1])) {
-        agentId = parts[1];
+      String[] parts = raw.split(":", 3);
+      if (parts.length == 3) {
+        if (!parts[1].isBlank() && !CHAT_ID_EMPTY.equals(parts[1])) {
+          nodeId = parts[1];
+        }
+        if (!parts[2].isBlank() && !CHAT_ID_EMPTY.equals(parts[2])) {
+          agentId = parts[2];
+        }
+      } else if (parts.length == 2) {
+        if (!parts[0].isBlank() && !CHAT_ID_EMPTY.equals(parts[0])) {
+          nodeId = parts[0];
+        }
+        if (!parts[1].isBlank() && !CHAT_ID_EMPTY.equals(parts[1])) {
+          agentId = parts[1];
+        }
+      } else if (parts.length == 1) {
+        if (!parts[0].isBlank() && !CHAT_ID_EMPTY.equals(parts[0])) {
+          nodeId = parts[0];
+        }
       }
     }
     if ((nodeId == null || nodeId.isBlank()) && (agentId == null || agentId.isBlank())) {
@@ -739,11 +756,13 @@ public class P2pChatHandler implements ProtocolHandler {
     return new Target(nodeId, agentId);
   }
 
-  private String buildChatId(String nodeId, String agentId) {
-    String safeNode = nodeId == null || nodeId.isBlank() ? CHAT_ID_EMPTY : nodeId;
-    String safeAgent = agentId == null || agentId.isBlank() ? CHAT_ID_EMPTY : agentId;
-    return CHAT_ID_PREFIX + safeNode + ":" + safeAgent;
+  private String buildChatId(String fromAgentId, String toNodeId, String toAgentId) {
+    String safeFrom = fromAgentId == null || fromAgentId.isBlank() ? CHAT_ID_EMPTY : fromAgentId.trim();
+    String safeNode = toNodeId == null || toNodeId.isBlank() ? CHAT_ID_EMPTY : toNodeId.trim();
+    String safeAgent = toAgentId == null || toAgentId.isBlank() ? CHAT_ID_EMPTY : toAgentId.trim();
+    return CHAT_ID_PREFIX + safeFrom + ":" + safeNode + ":" + safeAgent;
   }
+
 
   private String stringValue(Map<String, Object> metadata, String key) {
     if (metadata == null || key == null) return null;

@@ -1,15 +1,16 @@
 <template>
   <div class="agent-selector">
     <div class="selector-header">
-      <h3>Agent 列表</h3>
-      <button class="btn-icon" @click="showCreateDialog = true" title="创建新 Agent">
+      <h3>{{ t("agent.listTitle") }}</h3>
+      <button class="btn-icon" @click="showCreateDialog = true" :title="t('agent.create')">
         <span>+</span>
       </button>
     </div>
     
     <div class="search-box">
-      <input v-model="searchTerm" placeholder="搜索会话或 Agent" />
+      <input v-model="searchTerm" :placeholder="t('agent.searchPlaceholder')" />
     </div>
+
 
     <div class="agent-list">
       <div
@@ -26,7 +27,8 @@
           <div class="agent-desc" v-if="agent.description">{{ agent.description }}</div>
           <div class="agent-meta">
             <span class="meta-item">{{ agent.id }}</span>
-            <span v-if="agent.updatedAt" class="meta-item">更新于 {{ formatUpdatedAt(agent.updatedAt) }}</span>
+            <span v-if="agent.updatedAt" class="meta-item">{{ t("agent.updatedAt", { time: formatUpdatedAt(agent.updatedAt) }) }}</span>
+
           </div>
         </div>
 
@@ -41,45 +43,49 @@
     <div v-if="showCreateDialog" class="modal-overlay" @click.self="showCreateDialog = false">
       <div class="modal-dialog">
         <div class="modal-header">
-          <h3>创建新 Agent</h3>
+          <h3>{{ t("agent.dialog.title") }}</h3>
           <button class="btn-close" @click="showCreateDialog = false">×</button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="createAgent">
             <div class="form-group">
-              <label>Agent ID</label>
-              <input v-model="newAgent.id" required placeholder="例: code-reviewer" />
+              <label>{{ t("agent.dialog.id") }}</label>
+              <input v-model="newAgent.id" required :placeholder="t('agent.dialog.idPlaceholder')" />
             </div>
             <div class="form-group">
-              <label>名称</label>
-              <input v-model="newAgent.name" required placeholder="例: 代码审查助手" />
+              <label>{{ t("agent.dialog.name") }}</label>
+              <input v-model="newAgent.name" required :placeholder="t('agent.dialog.namePlaceholder')" />
             </div>
             <div class="form-group">
-              <label>描述</label>
-              <textarea v-model="newAgent.description" rows="3" placeholder="描述此 Agent 的功能"></textarea>
+              <label>{{ t("agent.dialog.description") }}</label>
+              <textarea v-model="newAgent.description" rows="3" :placeholder="t('agent.dialog.descriptionPlaceholder')"></textarea>
             </div>
             <div class="form-group">
-              <label>优先级 (0-10)</label>
+              <label>{{ t("agent.dialog.priority") }}</label>
               <input v-model.number="newAgent.routing.priority" type="number" min="0" max="10" />
             </div>
             <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="showCreateDialog = false">取消</button>
+              <button type="button" class="btn-secondary" @click="showCreateDialog = false">{{ t("agent.dialog.cancel") }}</button>
               <button type="submit" class="btn-primary" :disabled="creating">
-                {{ creating ? '创建中...' : '创建' }}
+                {{ creating ? t('agent.dialog.creating') : t('agent.dialog.create') }}
               </button>
             </div>
           </form>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from "../i18n";
 
 const agentStore = useAgentStore();
+const { t } = useI18n();
+
 const emit = defineEmits<{
   (e: 'select', agentId: string): void;
 }>();
@@ -126,11 +132,12 @@ function getStatusClass(agent: any): string {
 }
 
 function getStatusText(agent: any): string {
-  if (!agent) return '未知';
-  if (agent.enabled === false) return '已禁用';
-  if (agent.healthy === false) return '异常';
-  return '正常';
+  if (!agent) return t("agent.status.unknown");
+  if (agent.enabled === false) return t("agent.status.disabled");
+  if (agent.healthy === false) return t("agent.status.error");
+  return t("agent.status.ok");
 }
+
 
 function formatUpdatedAt(value: string): string {
   const date = new Date(value);
@@ -162,7 +169,8 @@ async function createAgent() {
     };
   } catch (e) {
     console.error('Failed to create agent:', e);
-    alert('创建 Agent 失败: ' + (e as Error).message);
+    alert(t("agent.dialog.createFailed", { message: (e as Error).message }));
+
   } finally {
     creating.value = false;
   }

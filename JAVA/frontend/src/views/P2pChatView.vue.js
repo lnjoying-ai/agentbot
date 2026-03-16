@@ -4,8 +4,10 @@ import ChatComposer from "../components/ChatComposer.vue";
 import P2pChatMessageItem from "../components/P2pChatMessageItem.vue";
 import { useP2pChatStore } from "../store/p2pChat";
 import { useAgentStore } from "../store/agents";
+import { useI18n } from "../i18n";
 const p2p = useP2pChatStore();
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const toNodeId = ref("");
 const toAgentId = ref("");
 const currentMessages = computed(() => {
@@ -16,7 +18,7 @@ const currentMessages = computed(() => {
         return content.length > 0 || reason.length > 0;
     });
 });
-const currentTitle = computed(() => p2p.currentSession.value?.title || "P2P 会话");
+const currentTitle = computed(() => p2p.currentSession.value?.title || t("p2p.sessionDefault"));
 const currentAgentId = computed({
     get: () => agentStore.currentAgentId.value,
     set: (value) => agentStore.switchToAgent(value)
@@ -41,11 +43,11 @@ function selectSession(chatId) {
 }
 async function handleSend(content) {
     if (!toNodeId.value.trim() || !toAgentId.value.trim()) {
-        alert("请先填写目标 NodeId 与 AgentId");
+        alert(t("p2p.fillTargets"));
         return;
     }
     if (!currentAgentId.value) {
-        alert("请先选择本地 Agent");
+        alert(t("p2p.selectLocalAgent"));
         return;
     }
     await p2p.sendMessage({
@@ -76,6 +78,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElemen
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("p2p.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "chat-container" },
 });
@@ -86,11 +89,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "panel-header" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("p2p.sessionList"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
     ...{ class: "status" },
     ...{ class: (__VLS_ctx.p2p.connected.value ? 'online' : 'offline') },
 });
-(__VLS_ctx.p2p.connected.value ? "在线" : "离线");
+(__VLS_ctx.p2p.connected.value ? __VLS_ctx.t("p2p.online") : __VLS_ctx.t("p2p.offline"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "session-list" },
 });
@@ -122,6 +126,7 @@ if (!__VLS_ctx.p2p.sessionList.value.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "empty" },
     });
+    (__VLS_ctx.t("p2p.emptySessions"));
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "chat-panel" },
@@ -137,11 +142,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "current-sub" },
 });
-(__VLS_ctx.p2p.currentChatId.value || "请选择会话");
+(__VLS_ctx.p2p.currentChatId.value || __VLS_ctx.t("p2p.selectSession"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "agent-select" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("p2p.localAgent"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.currentAgentId),
 });
@@ -171,6 +177,7 @@ if (__VLS_ctx.currentMessages.length === 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "empty" },
     });
+    (__VLS_ctx.t("p2p.emptyMessages"));
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "composer" },
@@ -179,11 +186,11 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "target-row" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "目标 NodeId",
+    placeholder: (__VLS_ctx.t('p2p.targetNodeId')),
 });
 (__VLS_ctx.toNodeId);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "目标 AgentId",
+    placeholder: (__VLS_ctx.t('p2p.targetAgentId')),
 });
 (__VLS_ctx.toAgentId);
 /** @type {[typeof ChatComposer, ]} */ ;
@@ -230,6 +237,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             P2pChatMessageItem: P2pChatMessageItem,
             p2p: p2p,
             agentStore: agentStore,
+            t: t,
             toNodeId: toNodeId,
             toAgentId: toAgentId,
             currentMessages: currentMessages,

@@ -7,7 +7,9 @@ import java.time.Instant;
 import java.util.List;
 
 
+
 public class SessionService {
+
   private static final Logger log = LoggerFactory.getLogger(SessionService.class);
   private final SessionStore store;
 
@@ -26,6 +28,8 @@ public class SessionService {
     store.append(sessionKey, new SessionMessage("assistant", content, Instant.now()));
     log.debug("Session append assistant: sessionKey={}, contentLen={}", sessionKey, content == null ? 0 : content.length());
   }
+
+
 
 
   public List<SessionMessage> getRecent(String sessionKey, int limit) {

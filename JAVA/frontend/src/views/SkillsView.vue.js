@@ -1,7 +1,9 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, onMounted, reactive, ref, toRefs, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from '../i18n';
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const loading = ref(false);
 const saving = ref(null);
 const search = ref('');
@@ -70,7 +72,7 @@ function canInstall(skill) {
 }
 function installLabel(skill) {
     const option = skill?.install?.[0];
-    return option?.label || '安装';
+    return option?.label || t('common.install');
 }
 function missingText(skill) {
     const missing = skill?.missing;
@@ -124,7 +126,7 @@ async function onSaveSkill(name) {
             patch.env = JSON.parse(envText);
         }
         catch (e) {
-            alert('环境变量需要合法的 JSON 格式');
+            alert(t('skills.envInvalid'));
             saving.value = null;
             return;
         }
@@ -199,15 +201,17 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("skills.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
     ...{ class: "subtitle" },
 });
+(__VLS_ctx.t("skills.subtitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "header-actions" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     ...{ class: "search" },
-    placeholder: "搜索技能名称或描述",
+    placeholder: (__VLS_ctx.t('skills.searchPlaceholder')),
 });
 (__VLS_ctx.search);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
@@ -215,6 +219,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "btn" },
     disabled: (__VLS_ctx.loading),
 });
+(__VLS_ctx.t("common.refresh"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "content" },
 });
@@ -224,28 +229,30 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "pill pill-primary" },
 });
-(__VLS_ctx.skillsData?.available?.length || 0);
+(__VLS_ctx.t("skills.totalCount", { count: __VLS_ctx.skillsData?.available?.length || 0 }));
 if (__VLS_ctx.blockedCount) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "pill pill-warning" },
     });
-    (__VLS_ctx.blockedCount);
+    (__VLS_ctx.t("skills.blockedCount", { count: __VLS_ctx.blockedCount }));
 }
 if (__VLS_ctx.installableCount) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "pill pill-warning" },
     });
-    (__VLS_ctx.installableCount);
+    (__VLS_ctx.t("skills.installableCount", { count: __VLS_ctx.installableCount }));
 }
 if (__VLS_ctx.loading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted center" },
     });
+    (__VLS_ctx.t("common.loading"));
 }
 else if (!__VLS_ctx.filteredSkills.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted center" },
     });
+    (__VLS_ctx.t("skills.empty"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -270,25 +277,26 @@ else {
             ...{ class: "pill" },
             ...{ class: (skill.blocked ? 'pill-warning' : 'pill-success') },
         });
-        (skill.blocked ? '阻塞' : '可用');
+        (skill.blocked ? __VLS_ctx.t("common.blocked") : __VLS_ctx.t("common.available"));
         if (__VLS_ctx.canInstall(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
                 ...{ class: "pill pill-warning" },
             });
+            (__VLS_ctx.t("common.installable"));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "meta" },
         });
-        (skill.source || 'unknown');
+        (__VLS_ctx.t("skills.sourceLabel", { value: skill.source || __VLS_ctx.t("common.unknown") }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "desc" },
         });
-        (skill.description || '暂无描述');
+        (skill.description || __VLS_ctx.t("common.noDescription"));
         if (__VLS_ctx.missingText(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                 ...{ class: "missing" },
             });
-            (__VLS_ctx.missingText(skill));
+            (__VLS_ctx.t("skills.missing", { value: __VLS_ctx.missingText(skill) }));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "actions" },
@@ -311,6 +319,7 @@ else {
             checked: (__VLS_ctx.isSkillEnabled(skill.name)),
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+        (__VLS_ctx.t("skills.enable"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
                     if (!!(__VLS_ctx.loading))
@@ -322,6 +331,7 @@ else {
             ...{ class: "btn small" },
             disabled: (__VLS_ctx.loading),
         });
+        (__VLS_ctx.t("common.viewDetails"));
         if (__VLS_ctx.canInstall(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
                 ...{ onClick: (...[$event]) => {
@@ -346,7 +356,7 @@ else {
                 ...{ onInput: (e => __VLS_ctx.onEditApiKey(skill.name, e.target.value)) },
                 type: "password",
                 value: (__VLS_ctx.apiKeyDraft[skill.name] || ''),
-                placeholder: (`API Key (${skill.primaryEnv})`),
+                placeholder: (__VLS_ctx.t('skills.apiKeyPlaceholder', { env: skill.primaryEnv })),
             });
             __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
                 ...{ onClick: (...[$event]) => {
@@ -361,6 +371,7 @@ else {
                 ...{ class: "btn small" },
                 disabled: (__VLS_ctx.loading || __VLS_ctx.saving === skill.name),
             });
+            (__VLS_ctx.t("common.save"));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "field" },
@@ -369,7 +380,7 @@ else {
             ...{ onInput: (e => __VLS_ctx.onEditEnv(skill.name, e.target.value)) },
             ...{ class: "env" },
             value: (__VLS_ctx.envDraft[skill.name] || ''),
-            placeholder: '环境变量 JSON，如 {"BASE_URL":"https://api"}',
+            placeholder: (__VLS_ctx.t('skills.envPlaceholder')),
             rows: "3",
         });
     }
@@ -391,18 +402,19 @@ if (__VLS_ctx.detail) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
         ...{ class: "muted" },
     });
-    (__VLS_ctx.detail.skill.description || '暂无描述');
+    (__VLS_ctx.detail.skill.description || __VLS_ctx.t("common.noDescription"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.closeDetail) },
         ...{ class: "btn small" },
     });
+    (__VLS_ctx.t("common.close"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-meta" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-    (__VLS_ctx.detail.skill.source || 'unknown');
+    (__VLS_ctx.t("skills.sourceLabel", { value: __VLS_ctx.detail.skill.source || __VLS_ctx.t("common.unknown") }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-    (__VLS_ctx.detail.skill.blocked ? '阻塞' : '可用');
+    (__VLS_ctx.t("skills.statusLabel", { value: __VLS_ctx.detail.skill.blocked ? __VLS_ctx.t("common.blocked") : __VLS_ctx.t("common.available") }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-body" },
     });
@@ -412,10 +424,11 @@ if (__VLS_ctx.detail) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-title" },
     });
+    (__VLS_ctx.t("skills.readmeTitle"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.pre, __VLS_intrinsicElements.pre)({
         ...{ class: "detail-content" },
     });
-    (__VLS_ctx.detail.content || '暂无内容');
+    (__VLS_ctx.detail.content || __VLS_ctx.t("common.noContent"));
 }
 /** @type {__VLS_StyleScopedClasses['skills-view']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
@@ -474,6 +487,7 @@ var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            t: t,
             loading: loading,
             saving: saving,
             search: search,

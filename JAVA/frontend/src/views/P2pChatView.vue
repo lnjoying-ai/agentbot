@@ -1,15 +1,17 @@
 <template>
   <section class="p2p-chat">
-    <h2 class="section-title">P2P智能体聊天</h2>
+    <h2 class="section-title">{{ t("p2p.title") }}</h2>
+
 
     <div class="chat-container">
       <aside class="session-panel">
         <div class="panel-header">
-          <h3>会话列表</h3>
+          <h3>{{ t("p2p.sessionList") }}</h3>
           <span class="status" :class="p2p.connected.value ? 'online' : 'offline'">
-            {{ p2p.connected.value ? "在线" : "离线" }}
+            {{ p2p.connected.value ? t("p2p.online") : t("p2p.offline") }}
           </span>
         </div>
+
         <div class="session-list">
           <div
             v-for="session in p2p.sessionList.value"
@@ -22,7 +24,8 @@
             <div class="session-sub">{{ session.chatId }}</div>
             <span v-if="session.unreadCount" class="badge">{{ session.unreadCount }}</span>
           </div>
-          <div v-if="!p2p.sessionList.value.length" class="empty">暂无会话</div>
+          <div v-if="!p2p.sessionList.value.length" class="empty">{{ t("p2p.emptySessions") }}</div>
+
         </div>
       </aside>
 
@@ -30,10 +33,11 @@
         <div class="chat-header">
           <div>
             <div class="current-title">{{ currentTitle }}</div>
-            <div class="current-sub">{{ p2p.currentChatId.value || "请选择会话" }}</div>
+            <div class="current-sub">{{ p2p.currentChatId.value || t("p2p.selectSession") }}</div>
           </div>
           <div class="agent-select">
-            <label>本地 Agent</label>
+            <label>{{ t("p2p.localAgent") }}</label>
+
             <select v-model="currentAgentId">
               <option v-for="agent in agentStore.agents.value" :key="agent.id" :value="agent.id">
                 {{ agent.displayName || agent.name || agent.id }}
@@ -48,14 +52,16 @@
             :key="msg.id"
             :message="msg"
           />
-          <div v-if="currentMessages.length === 0" class="empty">暂无消息记录</div>
+          <div v-if="currentMessages.length === 0" class="empty">{{ t("p2p.emptyMessages") }}</div>
+
         </div>
 
         <div class="composer">
           <div class="target-row">
-            <input v-model="toNodeId" placeholder="目标 NodeId" />
-            <input v-model="toAgentId" placeholder="目标 AgentId" />
+            <input v-model="toNodeId" :placeholder="t('p2p.targetNodeId')" />
+            <input v-model="toAgentId" :placeholder="t('p2p.targetAgentId')" />
           </div>
+
           <ChatComposer @send="handleSend" />
         </div>
       </div>
@@ -69,9 +75,12 @@ import ChatComposer from "../components/ChatComposer.vue";
 import P2pChatMessageItem from "../components/P2pChatMessageItem.vue";
 import { useP2pChatStore } from "../store/p2pChat";
 import { useAgentStore } from "../store/agents";
+import { useI18n } from "../i18n";
 
 const p2p = useP2pChatStore();
 const agentStore = useAgentStore();
+const { t } = useI18n();
+
 
 const toNodeId = ref("");
 const toAgentId = ref("");
@@ -85,7 +94,8 @@ const currentMessages = computed(() => {
   });
 });
 
-const currentTitle = computed(() => p2p.currentSession.value?.title || "P2P 会话");
+const currentTitle = computed(() => p2p.currentSession.value?.title || t("p2p.sessionDefault"));
+
 
 const currentAgentId = computed({
   get: () => agentStore.currentAgentId.value,
@@ -116,11 +126,13 @@ function selectSession(chatId: string) {
 
 async function handleSend(content: string) {
   if (!toNodeId.value.trim() || !toAgentId.value.trim()) {
-    alert("请先填写目标 NodeId 与 AgentId");
+    alert(t("p2p.fillTargets"));
+
     return;
   }
   if (!currentAgentId.value) {
-    alert("请先选择本地 Agent");
+    alert(t("p2p.selectLocalAgent"));
+
     return;
   }
   await p2p.sendMessage({

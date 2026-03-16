@@ -1,6 +1,8 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { reactive, ref, onMounted } from "vue";
 import { getApiBaseUrl } from "../store/config";
+import { useI18n } from "../i18n";
+const { t } = useI18n();
 const loading = ref(false);
 const jobs = ref([]);
 const draft = reactive({
@@ -35,7 +37,7 @@ async function createJob() {
     if (!baseUrl)
         return;
     if (!draft.prompt.trim()) {
-        alert("Prompt 不能为空");
+        alert(t("cron.promptRequired"));
         return;
     }
     const payload = {
@@ -59,7 +61,7 @@ async function createJob() {
         await fetchJobs();
     }
     else {
-        alert("创建失败，请检查参数");
+        alert(t("cron.createFailed"));
     }
 }
 async function toggleJob(job) {
@@ -96,6 +98,15 @@ function resetDraft() {
     draft.to = "";
     draft.channel = "";
 }
+function scheduleTypeLabel(value) {
+    if (value === "every")
+        return t("cron.type.every");
+    if (value === "cron")
+        return t("cron.type.cron");
+    if (value === "at")
+        return t("cron.type.at");
+    return value;
+}
 onMounted(fetchJobs);
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -107,20 +118,24 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElemen
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("cron.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("cron.listTitle"));
 if (__VLS_ctx.loading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ style: {} },
     });
+    (__VLS_ctx.t("common.loading"));
 }
 else if (__VLS_ctx.jobs.length === 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ style: {} },
     });
+    (__VLS_ctx.t("cron.empty"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -143,10 +158,10 @@ else {
             ...{ class: "job-meta" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-        (job.scheduleType);
+        (__VLS_ctx.scheduleTypeLabel(job.scheduleType));
         if (job.scheduleType === 'every') {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-            (job.everySeconds);
+            (__VLS_ctx.t("cron.everySeconds", { count: job.everySeconds ?? 0 }));
         }
         if (job.scheduleType === 'cron') {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
@@ -169,7 +184,7 @@ else {
                 } },
             ...{ class: "button secondary" },
         });
-        (job.enabled ? "禁用" : "启用");
+        (job.enabled ? __VLS_ctx.t("common.disable") : __VLS_ctx.t("common.enable"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
                     if (!!(__VLS_ctx.loading))
@@ -180,6 +195,7 @@ else {
                 } },
             ...{ class: "button danger" },
         });
+        (__VLS_ctx.t("common.delete"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "job-body" },
         });
@@ -187,23 +203,27 @@ else {
             ...{ class: "job-field" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+        (__VLS_ctx.t("cron.promptLabel"));
         (job.prompt);
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "job-field" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+        (__VLS_ctx.t("cron.sessionLabel"));
         (job.sessionKey);
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "job-field" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
-        (job.deliver ? "是" : "否");
+        (__VLS_ctx.t("cron.deliverLabel"));
+        (job.deliver ? __VLS_ctx.t("common.yes") : __VLS_ctx.t("common.no"));
     }
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("cron.newTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-grid" },
 });
@@ -211,6 +231,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.name"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "cron-job",
 });
@@ -219,6 +240,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.sessionKey"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "cron",
 });
@@ -227,23 +249,28 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.type"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.draft.scheduleType),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "every",
 });
+(__VLS_ctx.t("cron.type.every"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "cron",
 });
+(__VLS_ctx.t("cron.type.cron"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "at",
 });
+(__VLS_ctx.t("cron.type.at"));
 if (__VLS_ctx.draft.scheduleType === 'every') {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "form-field" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("cron.intervalSeconds"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         type: "number",
         min: "5",
@@ -255,6 +282,7 @@ if (__VLS_ctx.draft.scheduleType === 'cron') {
         ...{ class: "form-field" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("cron.cronExpr"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         placeholder: "0 */1 * * *",
     });
@@ -265,6 +293,7 @@ if (__VLS_ctx.draft.scheduleType === 'at') {
         ...{ class: "form-field" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("cron.runAt"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         placeholder: "2026-02-23T10:30:00Z",
     });
@@ -275,37 +304,43 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.prompt"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "请输入任务内容",
+    placeholder: (__VLS_ctx.t('cron.promptPlaceholder')),
 });
 (__VLS_ctx.draft.prompt);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.deliver"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.draft.deliver),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (true),
 });
+(__VLS_ctx.t("common.yes"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (false),
 });
+(__VLS_ctx.t("common.no"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.to"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "可选",
+    placeholder: (__VLS_ctx.t('common.optional')),
 });
 (__VLS_ctx.draft.to);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("cron.channel"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "可选",
+    placeholder: (__VLS_ctx.t('common.optional')),
 });
 (__VLS_ctx.draft.channel);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -315,10 +350,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ onClick: (__VLS_ctx.createJob) },
     ...{ class: "button" },
 });
+(__VLS_ctx.t("cron.create"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.resetDraft) },
     ...{ class: "button secondary" },
 });
+(__VLS_ctx.t("common.reset"));
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['job-list']} */ ;
@@ -354,6 +391,7 @@ var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            t: t,
             loading: loading,
             jobs: jobs,
             draft: draft,
@@ -361,6 +399,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             toggleJob: toggleJob,
             removeJob: removeJob,
             resetDraft: resetDraft,
+            scheduleTypeLabel: scheduleTypeLabel,
         };
     },
 });

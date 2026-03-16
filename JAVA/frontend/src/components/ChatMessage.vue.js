@@ -3,19 +3,61 @@ import { computed } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
+import { useI18n } from "../i18n";
 const props = defineProps();
+const { t } = useI18n();
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
     if (props.message.role === "user")
-        return "你";
+        return t("chat.role.user");
     if (props.message.role === "assistant")
-        return "Agent";
+        return t("chat.role.assistant");
     if (props.message.role === "tool")
-        return "工具";
-    return "系统";
+        return t("chat.role.tool");
+    return t("chat.role.system");
 });
+const formattedTimestamp = computed(() => {
+    const raw = props.message.timestamp;
+    if (!raw)
+        return "";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime()))
+        return raw;
+    return date.toLocaleString();
+});
+const isDaytime = computed(() => {
+    const raw = props.message.timestamp;
+    if (!raw)
+        return true;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime()))
+        return true;
+    const hour = date.getHours();
+    return hour >= 6 && hour < 18;
+});
+function extractLlmError(content) {
+    const text = content || "";
+    if (!text.includes("[LLM_ERROR]"))
+        return null;
+    const body = text.replace(/^\s*\[LLM_ERROR\]\s*/i, "");
+    const messageMatch = body.match(/message=([^|]+)(\||$)/i);
+    const hintMatch = body.match(/提示：(.+)$/);
+    const message = messageMatch ? messageMatch[1].trim() : body.trim();
+    const hint = hintMatch ? hintMatch[1].trim() : "";
+    return { message, hint };
+}
+function formatDisplayContent(content) {
+    const error = extractLlmError(content);
+    if (!error)
+        return content || "";
+    const lines = [`**${t("chat.llmError.title")}**`, `- ${t("chat.llmError.error")}：${error.message}`];
+    if (error.hint) {
+        lines.push(`- ${t("chat.llmError.hint")}：${error.hint}`);
+    }
+    return lines.join("\n");
+}
 const renderedContent = computed(() => {
-    const content = props.message.content || "";
+    const content = formatDisplayContent(props.message.content || "");
     const rawHtml = marked.parse(content);
     return DOMPurify.sanitize(rawHtml);
 });
@@ -52,8 +94,15 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
 (__VLS_ctx.roleLabel);
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-(__VLS_ctx.message.timestamp);
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+    ...{ class: "time-with-icon" },
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+    ...{ class: "time-icon" },
+    'aria-hidden': "true",
+});
+(__VLS_ctx.isDaytime ? "☀️" : "🌙");
+(__VLS_ctx.formattedTimestamp);
 if (__VLS_ctx.hasContent) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "markdown-body" },
@@ -79,6 +128,8 @@ if (__VLS_ctx.message.toolResults?.length) {
 }
 /** @type {__VLS_StyleScopedClasses['message']} */ ;
 /** @type {__VLS_StyleScopedClasses['message-meta']} */ ;
+/** @type {__VLS_StyleScopedClasses['time-with-icon']} */ ;
+/** @type {__VLS_StyleScopedClasses['time-icon']} */ ;
 /** @type {__VLS_StyleScopedClasses['markdown-body']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
@@ -87,6 +138,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             ToolResultCard: ToolResultCard,
             role: role,
             roleLabel: roleLabel,
+            formattedTimestamp: formattedTimestamp,
+            isDaytime: isDaytime,
             renderedContent: renderedContent,
             hasContent: hasContent,
         };

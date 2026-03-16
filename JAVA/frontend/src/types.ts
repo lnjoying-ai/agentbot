@@ -33,6 +33,16 @@ export interface ChatHistoryMessage {
   timestamp: string;
 }
 
+export interface ChatUploadResult {
+  ok: boolean;
+  path?: string;
+  storedName?: string;
+  originalName?: string;
+  size?: number;
+  error?: string;
+  timestamp?: string;
+}
+
 export type P2pChatDirection = "inbound" | "outbound";
 
 export type P2pChatStatus = "SENT" | "ACKED" | "NACKED" | "FAILED" | "RECEIVED";

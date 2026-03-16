@@ -1,5 +1,6 @@
 package com.agentbot.core.agent;
 
+import com.agentbot.config.AgentbotProperties;
 import com.agentbot.core.skills.SkillLoader;
 
 import com.agentbot.core.tools.ToolRegistry;
@@ -38,9 +39,11 @@ class AgentRegistryTest {
     ToolCallParser mockParser = mock(ToolCallParser.class);
     PendingActionStore mockStore = mock(PendingActionStore.class);
     SystemEventBus mockEventBus = mock(SystemEventBus.class);
+    AgentbotProperties properties = new AgentbotProperties();
     
     mockFactory = new AgentFactory(
         tempDir,
+        properties,
         mockProvider,
         mockTools,
         mockSkills,

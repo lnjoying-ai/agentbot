@@ -1,5 +1,15 @@
 $ErrorActionPreference = "Stop"
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+$encodingFlags = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
+if (-not $env:JAVA_TOOL_OPTIONS) {
+  $env:JAVA_TOOL_OPTIONS = $encodingFlags
+} elseif ($env:JAVA_TOOL_OPTIONS -notmatch "-Dfile\.encoding=UTF-8" -and $env:JAVA_TOOL_OPTIONS -notmatch "-Dsun\.jnu\.encoding=UTF-8") {
+  $env:JAVA_TOOL_OPTIONS = ($env:JAVA_TOOL_OPTIONS + " " + $encodingFlags).Trim()
+}
+
+
 $Root = (Split-Path $PSScriptRoot -Parent)
 Push-Location $Root
 

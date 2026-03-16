@@ -10,15 +10,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class ForwardController {
 
-    @RequestMapping(value = "/")
-    public String root() {
-        return "redirect:/chat";
-    }
-
-    @RequestMapping(value = {"/chat", "/monitor", "/config"})
+    @RequestMapping(value = {
+            "/",
+            "/chat",
+            "/multi-agent",
+            "/p2p-chat",
+            "/agents",
+            "/skills",
+            "/skills/store",
+            "/cron",
+            "/monitor",
+            "/config"
+    })
     public String forward() {
         return "forward:/index.html";
     }
 
 }
+
 

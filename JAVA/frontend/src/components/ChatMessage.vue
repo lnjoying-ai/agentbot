@@ -2,8 +2,13 @@
   <div class="message" :class="role">
     <div class="message-meta">
       <span>{{ roleLabel }}</span>
-      <span>{{ message.timestamp }}</span>
+      <span class="time-with-icon">
+        <span class="time-icon" aria-hidden="true">{{ isDaytime ? "☀️" : "🌙" }}</span>
+        {{ formattedTimestamp }}
+      </span>
     </div>
+
+
     <div v-if="hasContent" class="markdown-body" v-html="renderedContent"></div>
     <div v-if="message.toolResults?.length" style="margin-top: 10px; display: grid; gap: 8px;">
 
@@ -18,24 +23,72 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ToolResultCard from "./ToolResultCard.vue";
 import type { ChatMessage } from "../types";
+import { useI18n } from "../i18n";
 
 const props = defineProps<{ message: ChatMessage }>();
+const { t } = useI18n();
 
 
 const role = computed(() => props.message.role);
 const roleLabel = computed(() => {
-  if (props.message.role === "user") return "你";
-  if (props.message.role === "assistant") return "Agent";
-  if (props.message.role === "tool") return "工具";
-  return "系统";
+  if (props.message.role === "user") return t("chat.role.user");
+  if (props.message.role === "assistant") return t("chat.role.assistant");
+  if (props.message.role === "tool") return t("chat.role.tool");
+  return t("chat.role.system");
 });
 
+
+const formattedTimestamp = computed(() => {
+  const raw = props.message.timestamp;
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleString();
+});
+
+const isDaytime = computed(() => {
+  const raw = props.message.timestamp;
+  if (!raw) return true;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return true;
+  const hour = date.getHours();
+  return hour >= 6 && hour < 18;
+});
+
+
+function extractLlmError(content: string) {
+
+  const text = content || "";
+  if (!text.includes("[LLM_ERROR]")) return null;
+
+  const body = text.replace(/^\s*\[LLM_ERROR\]\s*/i, "");
+  const messageMatch = body.match(/message=([^|]+)(\||$)/i);
+  const hintMatch = body.match(/提示：(.+)$/);
+  const message = messageMatch ? messageMatch[1].trim() : body.trim();
+  const hint = hintMatch ? hintMatch[1].trim() : "";
+
+  return { message, hint };
+}
+
+function formatDisplayContent(content: string) {
+  const error = extractLlmError(content);
+  if (!error) return content || "";
+
+  const lines = [`**${t("chat.llmError.title")}**`, `- ${t("chat.llmError.error")}：${error.message}`];
+  if (error.hint) {
+    lines.push(`- ${t("chat.llmError.hint")}：${error.hint}`);
+  }
+
+  return lines.join("\n");
+}
+
 const renderedContent = computed(() => {
-  const content = props.message.content || "";
+  const content = formatDisplayContent(props.message.content || "");
   const rawHtml = marked.parse(content) as string;
 
   return DOMPurify.sanitize(rawHtml);
 });
+
 
 const hasContent = computed(() => {
   const content = props.message.content || "";
@@ -45,6 +98,18 @@ const hasContent = computed(() => {
 </script>
 
 <style scoped>
+.time-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-icon {
+  font-size: 12px;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+
 .markdown-body {
   font-size: 14px;
   line-height: 1.6;
@@ -55,6 +120,7 @@ const hasContent = computed(() => {
 
 
 .markdown-body :deep(p) {
+
   margin-top: 0;
   margin-bottom: 8px;
 }

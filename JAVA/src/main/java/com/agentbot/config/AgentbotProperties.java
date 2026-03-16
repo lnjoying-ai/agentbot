@@ -19,6 +19,8 @@ public class AgentbotProperties {
   private final Approvals approvals = new Approvals();
   private final Browser browser = new Browser();
   private final P2p p2p = new P2p();
+  private final Security security = new Security();
+
 
   public String getHeartbeatFile() {
 
@@ -78,6 +80,24 @@ public class AgentbotProperties {
   public P2p getP2p() {
     return p2p;
   }
+
+  public Security getSecurity() {
+    return security;
+  }
+
+  public boolean isAuthEnabled() {
+    return security.getAuth().isEnabled();
+  }
+
+  public String getAuthUsername() {
+    return security.getAuth().getUsername();
+  }
+
+  public String getAuthPassword() {
+    return security.getAuth().getPassword();
+  }
+
+
 
 
 
@@ -786,17 +806,21 @@ public class AgentbotProperties {
     private String apiBaseUrl = "https://api.openai.com/v1";
     private String baseUrl = "https://api.openai.com/v1";
     private String model = "gpt-4o-mini";
-    private double temperature = 0.2;
-    private String fallbackOrder = "openai,openrouter,glm,kimi,qwen,minimax";
-    private int maxToolRounds = 2;
+    private double temperature = 0.7;
+    private String fallbackOrder = "openai,openrouter,glm,kimi,qwen,minimax,apimesh";
+    private int maxToolRounds = 30;
     private boolean parallelTools = true;
-    private int toolParallelism = 4;
+    private int toolParallelism = 3;
+    private boolean logHttpRequest = false;
+    private boolean logHttpResponse = true;
     private final Provider openai = new Provider("https://api.openai.com/v1");
     private final Provider openrouter = new Provider("https://openrouter.ai/api/v1");
     private final Provider glm = new Provider("https://open.bigmodel.cn/api/paas/v4");
     private final Provider kimi = new Provider("https://api.moonshot.cn/v1");
     private final Provider qwen = new Provider("https://dashscope.aliyuncs.com/compatible-mode/v1");
     private final Provider minimax = new Provider("https://api.minimax.chat/v1");
+    private final Provider apimesh = new Provider("https://api.apimesh.io/api/v1/chat/completions");
+
 
 
 
@@ -817,8 +841,10 @@ public class AgentbotProperties {
         case "kimi" -> kimi;
         case "qwen" -> qwen;
         case "minimax" -> minimax;
+        case "apimesh" -> apimesh;
         default -> openai;
       };
+
     }
 
     public String getActiveModel() {
@@ -902,6 +928,22 @@ public class AgentbotProperties {
       this.toolParallelism = toolParallelism;
     }
 
+    public boolean isLogHttpRequest() {
+      return logHttpRequest;
+    }
+
+    public void setLogHttpRequest(boolean logHttpRequest) {
+      this.logHttpRequest = logHttpRequest;
+    }
+
+    public boolean isLogHttpResponse() {
+      return logHttpResponse;
+    }
+
+    public void setLogHttpResponse(boolean logHttpResponse) {
+      this.logHttpResponse = logHttpResponse;
+    }
+
     public Provider getOpenai() {
       return openai;
     }
@@ -928,7 +970,12 @@ public class AgentbotProperties {
       return minimax;
     }
 
+    public Provider getApimesh() {
+      return apimesh;
+    }
+
   }
+
 
   public static class Heartbeat {
     private boolean enabled = false;
@@ -1016,6 +1063,7 @@ public class AgentbotProperties {
     private String type = "bocha";
     private String braveApiKey = "";
     private String bochaApiKey = "";
+    private String apimeshKey = "";
 
     public String getType() {
       return type;
@@ -1040,6 +1088,14 @@ public class AgentbotProperties {
     public void setBochaApiKey(String bochaApiKey) {
       this.bochaApiKey = bochaApiKey;
     }
+
+    public String getApimeshKey() {
+      return apimeshKey;
+    }
+
+    public void setApimeshKey(String apimeshKey) {
+      this.apimeshKey = apimeshKey;
+    }
   }
 
   public static class Approvals {
@@ -1049,6 +1105,45 @@ public class AgentbotProperties {
       return tools;
     }
   }
+
+  public static class Security {
+    private final Auth auth = new Auth();
+
+    public Auth getAuth() {
+      return auth;
+    }
+  }
+
+  public static class Auth {
+    private boolean enabled = false;
+    private String username = "lnjoying";
+    private String password = "lnjoying";
+
+    public boolean isEnabled() {
+      return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+      this.enabled = enabled;
+    }
+
+    public String getUsername() {
+      return username;
+    }
+
+    public void setUsername(String username) {
+      this.username = username;
+    }
+
+    public String getPassword() {
+      return password;
+    }
+
+    public void setPassword(String password) {
+      this.password = password;
+    }
+  }
+
 
   public static class ToolApprovals {
     private String security = "allowlist";

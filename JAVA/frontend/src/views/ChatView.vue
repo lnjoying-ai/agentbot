@@ -1,7 +1,8 @@
 <template>
   <section class="chat-coop">
-    <h2 class="section-title">聊天协作</h2>
+    <h2 class="section-title">{{ t("chat.title.coop") }}</h2>
     <div class="chat-shell">
+
       <AgentSelector class="agent-sidebar" @select="handleAgentSelect" />
       <div class="chat-panel">
         <div class="chat-header">
@@ -10,14 +11,16 @@
             <span v-if="agentStore.currentAgent.value" :class="['status-dot', currentAgentStatus]"></span>
           </div>
           <div class="chat-actions">
-            <button class="btn-icon" @click="handleLoadHistory" :disabled="!agentStore.currentAgentId.value || currentHistoryLoading" title="加载历史" aria-label="加载历史">
+            <button class="btn-icon" @click="handleLoadHistory" :disabled="!agentStore.currentAgentId.value || currentHistoryLoading" :title="t('chat.loadHistory')" :aria-label="t('chat.loadHistory')">
+
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                 <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 <path d="M20 4v4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button class="btn-icon" @click="clearChat" title="清空对话" aria-label="清空对话">
+            <button class="btn-icon" @click="clearChat" :title="t('chat.clearChat')" :aria-label="t('chat.clearChat')">
+
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4 7h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 <path d="M9 7V5h6v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -29,13 +32,15 @@
         </div>
 
         <div ref="chatStreamRef" class="chat-stream" @scroll.passive="handleScroll">
-          <div v-if="currentHistoryLoading" class="history-loading">加载历史中...</div>
-          <div v-else-if="!currentHistoryHasMore && currentMessages.length" class="history-end">已到达最早记录</div>
+          <div v-if="currentHistoryLoading" class="history-loading">{{ t("chat.loadingHistory") }}</div>
+          <div v-else-if="!currentHistoryHasMore && currentMessages.length" class="history-end">{{ t("chat.historyEnd") }}</div>
+
           <ChatMessage v-for="msg in currentMessages" :key="msg.id" :message="msg" />
           <div v-if="currentMessages.length === 0" class="empty-chat">
-            <p>开始与 {{ currentAgentName }} 对话</p>
+            <p>{{ t("chat.startWith", { name: currentAgentName }) }}</p>
 
           </div>
+
         </div>
 
 
@@ -51,6 +56,8 @@ import { computed, onMounted, watch, ref, nextTick, onBeforeUnmount, reactive } 
 
 
 import ChatMessage from "../components/ChatMessage.vue";
+import { useI18n } from "../i18n";
+
 import ChatComposer from "../components/ChatComposer.vue";
 import AgentSelector from "../components/AgentSelector.vue";
 import { useAgentStore } from "../store/agents";
@@ -60,6 +67,8 @@ import { useConfigStore } from "../store/config";
 const agentStore = useAgentStore();
 const chat = useChatStore();
 const config = useConfigStore();
+const { t } = useI18n();
+
 
 
 const chatStreamRef = ref<HTMLDivElement | null>(null);
@@ -122,8 +131,9 @@ watch(currentMessages, () => {
 
 const currentAgentName = computed(() => {
   const agent = agentStore.currentAgent.value;
-  return agent?.displayName || agent?.name || agent?.id || '未选择';
+  return agent?.displayName || agent?.name || agent?.id || t("chat.noAgentSelected");
 });
+
 
 const currentAgentStatus = computed(() => {
   const agent = agentStore.currentAgent.value;
@@ -338,7 +348,8 @@ watch(agentStore.agents, () => {
 async function sendMessage(text: string) {
   const agentId = agentStore.currentAgentId.value;
   if (!agentId) {
-    alert('请先选择一个 Agent');
+    alert(t("chat.selectAgentFirst"));
+
     return;
   }
 
@@ -369,7 +380,8 @@ async function sendMessage(text: string) {
     agentStore.addMessage(agentId, {
       id: Date.now().toString(),
       role: 'assistant',
-      content: '抱歉，由于网络或后端服务异常，我暂时无法处理您的请求。',
+      content: t("chat.sendFailed"),
+
       timestamp: new Date().toISOString()
     }, { suppressUnread: true });
   }
@@ -381,7 +393,8 @@ async function sendMessage(text: string) {
 function clearChat() {
   const agentId = agentStore.currentAgentId.value;
   if (!agentId) return;
-  if (confirm('确定要清空当前对话吗？')) {
+  if (confirm(t("chat.confirmClear"))) {
+
     const conv = agentStore.conversations.get(agentId);
     if (conv) {
       conv.messages = [];
@@ -440,10 +453,10 @@ onBeforeUnmount(() => {
 }
 
 .section-title {
-  padding: 16px 20px;
-  margin: 0;
+  padding: 12px 18px;
+  margin: 0 0 8px;
   font-size: 18px;
-  border-bottom: 1px solid var(--border);
+  color: var(--text);
 }
 
 .chat-shell {
@@ -453,9 +466,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   padding: 12px 16px 16px;
   box-sizing: border-box;
-  gap: 12px;
+  gap: 16px;
 }
-
 
 .agent-sidebar {
   border-right: none;
@@ -464,17 +476,22 @@ onBeforeUnmount(() => {
 .chat-panel {
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: linear-gradient(180deg, rgba(17, 24, 44, 0.95), rgba(10, 15, 29, 0.98));
   min-width: 0;
+  border-radius: 18px;
+  border: 1px solid rgba(111, 140, 255, 0.16);
+  box-shadow: 0 24px 60px rgba(8, 12, 24, 0.45);
+  overflow: hidden;
 }
 
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--hover);
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(111, 140, 255, 0.12);
+  background: rgba(18, 26, 47, 0.65);
+  backdrop-filter: blur(6px);
 }
 
 .current-agent-info {
@@ -486,12 +503,14 @@ onBeforeUnmount(() => {
 .agent-name {
   font-weight: 600;
   font-size: 14px;
+  color: var(--text);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
 .status-dot.active {
@@ -514,29 +533,65 @@ onBeforeUnmount(() => {
 .btn-icon {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid rgba(111, 140, 255, 0.2);
+  background: rgba(111, 140, 255, 0.08);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--text);
+  transition: all 0.2s ease;
 }
 
 .btn-icon:hover {
-  background: var(--border);
+  background: rgba(111, 140, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .chat-stream {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 22px;
   min-width: 0;
   height: 520px;
+  background: linear-gradient(180deg, rgba(12, 18, 35, 0.6), rgba(9, 14, 26, 0.9));
 }
 
+:deep(.message) {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 30px rgba(6, 9, 20, 0.35);
+  backdrop-filter: blur(4px);
+}
 
+:deep(.message.user) {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(111, 140, 255, 0.22), rgba(89, 112, 208, 0.28));
+  border-color: rgba(111, 140, 255, 0.4);
+}
 
+:deep(.message.assistant) {
+  align-self: flex-start;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+}
+
+:deep(.message-meta) {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(180, 195, 235, 0.85);
+  margin-bottom: 8px;
+}
 
 .history-loading,
 .history-end {
@@ -547,7 +602,6 @@ onBeforeUnmount(() => {
 }
 
 .empty-chat {
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,3 +617,4 @@ onBeforeUnmount(() => {
 }
 
 </style>
+

@@ -9,6 +9,9 @@ import com.agentbot.core.tools.ToolRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+
 /**
  * Represents a single agent instance with its own runtime, memory, and configuration.
  */
@@ -23,6 +26,8 @@ public class AgentInstance {
   private final SkillLoader skills;
   private final ToolRegistry tools;
   private final java.util.List<com.agentbot.core.skills.Skill> loadedSkills;
+  private final AtomicInteger activeSessions = new AtomicInteger(0);
+
   
   public AgentInstance(
       String id,
@@ -90,8 +95,14 @@ public class AgentInstance {
           "This agent is currently disabled."
       );
     }
-    return runtime.handle(message);
+    activeSessions.incrementAndGet();
+    try {
+      return runtime.handle(message);
+    } finally {
+      activeSessions.decrementAndGet();
+    }
   }
+
   
   /**
    * Check if agent is healthy and operational.
@@ -99,6 +110,15 @@ public class AgentInstance {
   public boolean isHealthy() {
     return config.isEnabled() && runtime != null;
   }
+
+  public boolean isWorking() {
+    return activeSessions.get() > 0;
+  }
+
+  public int getActiveSessions() {
+    return activeSessions.get();
+  }
+
   
   /**
    * Shutdown agent gracefully.

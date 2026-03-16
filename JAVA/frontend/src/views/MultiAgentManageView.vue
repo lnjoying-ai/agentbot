@@ -1,13 +1,13 @@
 <template>
   <section class="agent-manage">
-    <h2 class="section-title">智能体管理</h2>
+    <h2 class="section-title">{{ t("agent.manage.title") }}</h2>
 
     <div class="card" style="margin-bottom: 16px">
       <div class="toolbar">
         <div class="toolbar-actions">
-          <button class="button" @click="newAgent">新建 Agent</button>
+          <button class="button" @click="newAgent">{{ t("agent.manage.new") }}</button>
           <button class="button secondary" @click="refresh" :disabled="agentStore.loading.value">
-            刷新列表
+            {{ t("agent.manage.refreshList") }}
           </button>
         </div>
         <div class="toolbar-status" v-if="agentStore.error.value">
@@ -19,12 +19,12 @@
     <div class="manage-grid">
       <div class="card list-panel">
         <div class="list-header">
-          <h3>Agent 列表</h3>
+          <h3>{{ t("agent.listTitle") }}</h3>
           <div class="search-box">
-            <input v-model="searchTerm" placeholder="搜索 Agent" />
+            <input v-model="searchTerm" :placeholder="t('agent.searchPlaceholder')" />
           </div>
         </div>
-        <div v-if="agentStore.loading.value" class="muted">加载中...</div>
+        <div v-if="agentStore.loading.value" class="muted">{{ t("common.loading") }}</div>
         <div v-else class="agent-list">
           <button
             v-for="agent in filteredAgents"
@@ -35,90 +35,89 @@
           >
             <div class="agent-title">
               <strong>{{ agent.displayName || agent.name || agent.id }}</strong>
-              <span v-if="agent.enabled === false" class="pill">已禁用</span>
-              <span v-else-if="agent.healthy === false" class="pill warning">异常</span>
-              <span v-else class="pill">正常</span>
+              <span v-if="agent.enabled === false" class="pill">{{ t("agent.status.disabled") }}</span>
+              <span v-else-if="agent.healthy === false" class="pill warning">{{ t("agent.status.error") }}</span>
+              <span v-else class="pill">{{ t("agent.status.ok") }}</span>
             </div>
             <div class="agent-meta">
               <span>{{ agent.id }}</span>
-              <span v-if="agent.updatedAt">更新于 {{ agent.updatedAt }}</span>
+              <span v-if="agent.updatedAt">{{ t("agent.updatedAt", { time: agent.updatedAt }) }}</span>
             </div>
           </button>
-          <div v-if="!filteredAgents.length" class="muted">暂无匹配的 Agent</div>
+          <div v-if="!filteredAgents.length" class="muted">{{ t("agent.manage.empty") }}</div>
         </div>
       </div>
 
-
       <div class="card form-panel">
-        <h3>{{ isEditing ? '编辑 Agent' : '创建 Agent' }}</h3>
+        <h3>{{ isEditing ? t("agent.manage.editTitle") : t("agent.manage.createTitle") }}</h3>
         <div class="form-grid">
           <div class="form-field">
-            <label>Agent ID</label>
-            <input v-model="draft.id" :disabled="isEditing" placeholder="例如: planner" />
+            <label>{{ t("agent.dialog.id") }}</label>
+            <input v-model="draft.id" :disabled="isEditing" placeholder="planner" />
           </div>
           <div class="form-field">
-            <label>名称</label>
-            <input v-model="draft.name" placeholder="例如: Planner" />
+            <label>{{ t("agent.dialog.name") }}</label>
+            <input v-model="draft.name" placeholder="Planner" />
           </div>
           <div class="form-field">
-            <label>显示名称</label>
-            <input v-model="draft.displayName" placeholder="用于界面显示" />
+            <label>{{ t("agent.manage.displayName") }}</label>
+            <input v-model="draft.displayName" :placeholder="t('agent.manage.displayNamePlaceholder')" />
           </div>
           <div class="form-field">
-            <label>头像 URL</label>
+            <label>{{ t("agent.manage.avatarUrl") }}</label>
             <input v-model="draft.avatar" placeholder="https://..." />
           </div>
           <div class="form-field">
-            <label>启用状态</label>
+            <label>{{ t("agent.manage.enabledState") }}</label>
             <select v-model="draft.enabled">
-              <option :value="true">启用</option>
-              <option :value="false">禁用</option>
+              <option :value="true">{{ t("common.enable") }}</option>
+              <option :value="false">{{ t("common.disable") }}</option>
             </select>
           </div>
           <div class="form-field">
-            <label>描述</label>
-            <textarea v-model="draft.description" rows="3" placeholder="简要说明该 Agent 的职责"></textarea>
+            <label>{{ t("agent.dialog.description") }}</label>
+            <textarea v-model="draft.description" rows="3" :placeholder="t('agent.manage.descriptionPlaceholder')"></textarea>
           </div>
         </div>
 
         <div class="card" style="margin-top: 16px">
-          <h3>路由配置</h3>
+          <h3>{{ t("agent.manage.routingTitle") }}</h3>
           <div class="form-grid">
             <div class="form-field">
-              <label>关键词 (逗号分隔)</label>
-              <input v-model="keywordsText" placeholder="搜索,总结,计划" />
+              <label>{{ t("agent.manage.keywords") }}</label>
+              <input v-model="keywordsText" :placeholder="t('agent.manage.keywordsPlaceholder')" />
             </div>
             <div class="form-field">
-              <label>渠道 (逗号分隔)</label>
-              <input v-model="channelsText" placeholder="web,telegram" />
+              <label>{{ t("agent.manage.channels") }}</label>
+              <input v-model="channelsText" :placeholder="t('agent.manage.channelsPlaceholder')" />
             </div>
             <div class="form-field">
-              <label>优先级</label>
+              <label>{{ t("agent.manage.priority") }}</label>
               <input v-model.number="draft.routing.priority" type="number" min="0" />
             </div>
             <div class="form-field">
-              <label>自动路由</label>
+              <label>{{ t("agent.manage.autoRoute") }}</label>
               <select v-model="draft.routing.autoRoute">
-                <option :value="true">启用</option>
-                <option :value="false">禁用</option>
+                <option :value="true">{{ t("common.enable") }}</option>
+                <option :value="false">{{ t("common.disable") }}</option>
               </select>
             </div>
           </div>
         </div>
 
         <div class="card" style="margin-top: 16px">
-          <h3>能力配置</h3>
+          <h3>{{ t("agent.manage.capabilitiesTitle") }}</h3>
           <div class="form-grid">
             <div class="form-field">
-              <label>继承工具 (逗号分隔)</label>
+              <label>{{ t("agent.manage.inheritedTools") }}</label>
               <input v-model="toolsInheritedText" placeholder="echo,time_now" />
             </div>
             <div class="form-field">
-              <label>禁用工具 (逗号分隔)</label>
+              <label>{{ t("agent.manage.disabledTools") }}</label>
               <input v-model="toolsDisabledText" placeholder="shell" />
             </div>
             <div class="form-field">
-              <label>自定义工具 (逗号分隔)</label>
+              <label>{{ t("agent.manage.customTools") }}</label>
               <input v-model="toolsCustomText" placeholder="custom_tool" />
             </div>
           </div>
@@ -126,7 +125,7 @@
           <div class="skills-section">
             <div class="skills-header">
               <div>
-                <div class="label">当前 Agent</div>
+                <div class="label">{{ t("agent.manage.currentAgent") }}</div>
                 <div class="title">{{ selectedAgentName }}</div>
               </div>
               <div class="status" :class="statusClass">{{ statusText }}</div>
@@ -134,88 +133,86 @@
 
             <div class="form-grid">
               <div class="form-field">
-                <label>继承系统技能</label>
+                <label>{{ t("agent.manage.inheritSystemSkills") }}</label>
                 <select v-model="skillInherited">
-                  <option :value="true">继承</option>
-                  <option :value="false">不继承</option>
+                  <option :value="true">{{ t("agent.manage.inherit") }}</option>
+                  <option :value="false">{{ t("agent.manage.noInherit") }}</option>
                 </select>
               </div>
               <div class="form-field">
-                <label>自定义技能路径</label>
-                <input v-model="skillCustomPath" placeholder="例如 skills/" />
+                <label>{{ t("agent.manage.customSkillPath") }}</label>
+                <input v-model="skillCustomPath" placeholder="skills/" />
               </div>
               <div class="form-field" style="align-self: flex-end">
-                <button class="button" @click="saveSkillSettings" :disabled="skillsLoading || !selectedId">保存技能设置</button>
+                <button class="button" @click="saveSkillSettings" :disabled="skillsLoading || !selectedId">{{ t("agent.manage.saveSkillSettings") }}</button>
               </div>
             </div>
 
-              <div class="skills-list-card">
-                <div class="skills-list-header">
-                  <div class="title">技能列表</div>
-                  <button class="button secondary" @click="refreshSkills" :disabled="skillsLoading || !selectedId">重新加载</button>
+            <div class="skills-list-card">
+              <div class="skills-list-header">
+                <div class="title">{{ t("agent.manage.skillList") }}</div>
+                <button class="button secondary" @click="refreshSkills" :disabled="skillsLoading || !selectedId">{{ t("common.reload") }}</button>
+              </div>
+
+              <div v-if="skillsLoading" class="muted">{{ t("common.loading") }}</div>
+              <div v-else-if="skillsData?.available?.length" class="skill-list">
+                <div v-if="blockedCount || installableCount" class="muted">
+                  <span v-if="blockedCount">{{ t("skills.blockedCount", { count: blockedCount }) }}</span>
+                  <span v-if="blockedCount && installableCount"> · </span>
+                  <span v-if="installableCount">{{ t("skills.installableCount", { count: installableCount }) }}</span>
                 </div>
 
-                <div v-if="skillsLoading" class="muted">加载中...</div>
-                <div v-else-if="skillsData?.available?.length" class="skill-list">
-                  <div v-if="blockedCount || installableCount" class="muted">
-                    <span v-if="blockedCount">阻塞 {{ blockedCount }} 个</span>
-                    <span v-if="blockedCount && installableCount"> · </span>
-                    <span v-if="installableCount">可安装 {{ installableCount }} 个</span>
-                  </div>
-
-                  <div v-for="skill in skillsData.available" :key="skill.name" class="skill-row">
-                    <div class="skill-main">
-                      <div class="skill-name">
-                        {{ skill.name }}
-                        <span class="pill" :class="skill.blocked ? 'pill-warning' : 'pill-success'">
-                          {{ skill.blocked ? '阻塞' : '可用' }}
-                        </span>
-                        <span v-if="canInstall(skill)" class="pill pill-warning">可安装</span>
-                      </div>
-                      <div class="skill-desc">{{ skill.description || '暂无描述' }}</div>
-                      <div v-if="missingText(skill)" class="skill-missing">缺失：{{ missingText(skill) }}</div>
+                <div v-for="skill in skillsData.available" :key="skill.name" class="skill-row">
+                  <div class="skill-main">
+                    <div class="skill-name">
+                      {{ skill.name }}
+                      <span class="pill" :class="skill.blocked ? 'pill-warning' : 'pill-success'">
+                        {{ skill.blocked ? t("common.blocked") : t("common.available") }}
+                      </span>
+                      <span v-if="canInstall(skill)" class="pill pill-warning">{{ t("common.installable") }}</span>
                     </div>
-                    <div class="skill-actions">
-                      <div class="inline-actions">
-                        <label class="toggle">
-                          <input type="checkbox" :checked="isSkillEnabled(skill.name)" @change="onToggleSkill(skill.name, $event)" />
-                          <span>启用</span>
-                        </label>
-                        <button v-if="canInstall(skill)" class="button small" @click="onInstallSkill(skill)" :disabled="skillsLoading">{{ installLabel(skill) }}</button>
-                      </div>
-                      <div v-if="skill.primaryEnv" class="field">
-                        <input
-                          type="password"
-                          :value="skillApiKeyDraft[skill.name] || ''"
-                          @input="e => onEditSkillApiKey(skill.name, (e.target as HTMLInputElement).value)"
-                          :placeholder="`API Key (${skill.primaryEnv})`"
-                        />
-                        <button class="button small" @click="onSaveSkill(skill.name)" :disabled="skillsLoading || savingSkill === skill.name">保存</button>
-                      </div>
-                      <div class="field">
-                        <textarea
-                          class="env"
-                          :value="skillEnvDraft[skill.name] || ''"
-                          @input="e => onEditSkillEnv(skill.name, (e.target as HTMLTextAreaElement).value)"
-                          placeholder='可选：环境变量 JSON，如 {"BASE_URL":"https://api"}'
-                          rows="3"
-                        ></textarea>
-                      </div>
+                    <div class="skill-desc">{{ skill.description || t("common.noDescription") }}</div>
+                    <div v-if="missingText(skill)" class="skill-missing">{{ t("skills.missing", { value: missingText(skill) }) }}</div>
+                  </div>
+                  <div class="skill-actions">
+                    <div class="inline-actions">
+                      <label class="toggle">
+                        <input type="checkbox" :checked="isSkillEnabled(skill.name)" @change="onToggleSkill(skill.name, $event)" />
+                        <span>{{ t("skills.enable") }}</span>
+                      </label>
+                      <button v-if="canInstall(skill)" class="button small" @click="onInstallSkill(skill)" :disabled="skillsLoading">{{ installLabel(skill) }}</button>
+                    </div>
+                    <div v-if="skill.primaryEnv" class="field">
+                      <input
+                        type="password"
+                        :value="skillApiKeyDraft[skill.name] || ''"
+                        @input="e => onEditSkillApiKey(skill.name, (e.target as HTMLInputElement).value)"
+                        :placeholder="t('skills.apiKeyPlaceholder', { env: skill.primaryEnv })"
+                      />
+                      <button class="button small" @click="onSaveSkill(skill.name)" :disabled="skillsLoading || savingSkill === skill.name">{{ t("common.save") }}</button>
+                    </div>
+                    <div class="field">
+                      <textarea
+                        class="env"
+                        :value="skillEnvDraft[skill.name] || ''"
+                        @input="e => onEditSkillEnv(skill.name, (e.target as HTMLTextAreaElement).value)"
+                        :placeholder="t('skills.envPlaceholder')"
+                        rows="3"
+                      ></textarea>
                     </div>
                   </div>
-
                 </div>
-                <div v-else class="muted">未发现技能文件</div>
+              </div>
+              <div v-else class="muted">{{ t("skills.notFoundFiles") }}</div>
             </div>
           </div>
         </div>
 
-
         <div class="config-actions">
           <button class="button" @click="save" :disabled="saving">
-            {{ isEditing ? '保存修改' : '创建 Agent' }}
+            {{ isEditing ? t("agent.manage.saveChanges") : t("agent.manage.createTitle") }}
           </button>
-          <button class="button secondary" @click="reset" :disabled="saving">重置</button>
+          <button class="button secondary" @click="reset" :disabled="saving">{{ t("common.reset") }}</button>
           <button
             v-if="isEditing"
             class="button secondary"
@@ -223,7 +220,7 @@
             @click="remove"
             :disabled="saving"
           >
-            删除 Agent
+            {{ t("agent.manage.delete") }}
           </button>
         </div>
       </div>
@@ -234,20 +231,20 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from '../i18n';
 
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const selectedId = ref<string | null>(null);
 const saving = ref(false);
 const skillsLoading = ref(false);
 const savingSkill = ref<string | null>(null);
 const searchTerm = ref('');
 
-
 const skillInherited = ref(true);
 const skillCustomPath = ref('');
 const skillApiKeyDraft = ref<Record<string, string>>({});
 const skillEnvDraft = ref<Record<string, string>>({});
-
 
 const draft = reactive({
   id: '',
@@ -289,7 +286,6 @@ const filteredAgents = computed(() => {
   });
 });
 
-
 const keywordsText = computed({
   get: () => draft.routing.keywords.join(', '),
   set: (val: string) => {
@@ -326,7 +322,7 @@ const toolsCustomText = computed({
 });
 
 const selectedAgent = computed(() => agentStore.getAgent(selectedId.value || ''));
-const selectedAgentName = computed(() => selectedAgent.value?.displayName || selectedAgent.value?.name || selectedAgent.value?.id || '未选择');
+const selectedAgentName = computed(() => selectedAgent.value?.displayName || selectedAgent.value?.name || selectedAgent.value?.id || t('common.notSelected'));
 
 const statusClass = computed(() => {
   if (!selectedAgent.value) return 'inactive';
@@ -336,10 +332,10 @@ const statusClass = computed(() => {
 });
 
 const statusText = computed(() => {
-  if (!selectedAgent.value) return '未选择';
-  if (selectedAgent.value.enabled === false) return '已禁用';
-  if (selectedAgent.value.healthy === false) return '异常';
-  return '正常';
+  if (!selectedAgent.value) return t('common.notSelected');
+  if (selectedAgent.value.enabled === false) return t('agent.status.disabled');
+  if (selectedAgent.value.healthy === false) return t('agent.status.error');
+  return t('agent.status.ok');
 });
 
 const skillsData = computed(() => {
@@ -393,7 +389,6 @@ async function refreshSkills() {
 }
 
 function parseList(value: string) {
-
   return value
     .split(',')
     .map(item => item.trim())
@@ -423,7 +418,6 @@ function applyConfig(config: any) {
   skillCustomPath.value = draft.capabilities.skills.customPath;
 }
 
-
 function reset() {
   if (selectedId.value) {
     selectAgent(selectedId.value);
@@ -437,7 +431,6 @@ function newAgent() {
   skillApiKeyDraft.value = {};
   skillEnvDraft.value = {};
   applyConfig({
-
     id: '',
     name: '',
     displayName: '',
@@ -456,7 +449,7 @@ async function selectAgent(agentId: string) {
   selectedId.value = agentId;
   const response = await fetch(`/api/agents/${agentId}/config`);
   if (!response.ok) {
-    alert(`加载 Agent 配置失败: ${response.statusText}`);
+    alert(t('agent.manage.loadFailed', { message: response.statusText }));
     return;
   }
   const config = await response.json();
@@ -464,10 +457,9 @@ async function selectAgent(agentId: string) {
   await refreshSkills();
 }
 
-
 async function save() {
   if (!draft.id || !draft.name) {
-    alert('Agent ID 和名称为必填项');
+    alert(t('agent.manage.validationRequired'));
     return;
   }
   saving.value = true;
@@ -488,10 +480,9 @@ async function save() {
   }
 }
 
-
 async function remove() {
   if (!selectedId.value) return;
-  if (!confirm(`确定删除 Agent ${selectedId.value}？`)) return;
+  if (!confirm(t('agent.manage.deleteConfirm', { id: selectedId.value }))) return;
   saving.value = true;
   try {
     await agentStore.deleteAgent(selectedId.value);
@@ -510,7 +501,7 @@ function canInstall(skill: any) {
 
 function installLabel(skill: any) {
   const option = skill?.install?.[0];
-  return option?.label || '安装';
+  return option?.label || t('common.install');
 }
 
 function missingText(skill: any) {
@@ -554,7 +545,6 @@ async function onInstallSkill(skill: any) {
 }
 
 async function onToggleSkill(name: string, evt: Event) {
-
   if (!selectedId.value) return;
   const checked = (evt.target as HTMLInputElement).checked;
   skillsLoading.value = true;
@@ -575,7 +565,7 @@ async function onSaveSkill(name: string) {
     try {
       patch.env = JSON.parse(envText);
     } catch (e) {
-      alert('环境变量需要合法的 JSON 格式');
+      alert(t('skills.envInvalid'));
       savingSkill.value = null;
       return;
     }
@@ -603,6 +593,7 @@ async function saveSkillSettings() {
 }
 
 </script>
+
 
 <style scoped>
 .agent-manage {

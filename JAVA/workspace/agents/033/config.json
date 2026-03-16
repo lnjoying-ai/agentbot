@@ -1,0 +1,60 @@
+{
+  "id" : "033",
+  "name" : "Kate",
+  "description" : "",
+  "avatar" : "",
+  "enabled" : true,
+  "personality" : {
+    "useSoul" : true,
+    "soulPath" : null,
+    "fallbackToSystem" : true
+  },
+  "behavior" : {
+    "useAgentMd" : true,
+    "agentMdPath" : null,
+    "fallbackToSystem" : true
+  },
+  "capabilities" : {
+    "tools" : {
+      "inherited" : [ ],
+      "disabled" : [ ],
+      "custom" : [ ]
+    },
+    "skills" : {
+      "inherited" : true,
+      "customPath" : "",
+      "entries" : { }
+    }
+  },
+  "memory" : {
+    "enabled" : true,
+    "path" : null,
+    "maxLongTermLines" : 500,
+    "maxDailyLines" : 1000
+  },
+  "sessions" : {
+    "path" : null,
+    "maxHistoryMessages" : 20,
+    "retentionDays" : 30
+  },
+  "routing" : {
+    "channels" : [ ],
+    "keywords" : [ ],
+    "priority" : 0,
+    "autoRoute" : false
+  },
+  "llm" : {
+    "provider" : null,
+    "model" : null,
+    "temperature" : 0.7,
+    "maxTokens" : 4096,
+    "overrideSystem" : false,
+    "maxToolRounds" : 30,
+    "parallelTools" : true,
+    "toolParallelism" : 3
+  },
+  "metadata" : { },
+  "displayName" : "Kate（商会分析）",
+  "createdAt" : "2026-03-06T18:36:23.491025800Z",
+  "updatedAt" : "2026-03-06T18:36:23.491025800Z"
+}

@@ -110,21 +110,27 @@ public class AgentConfiguration {
     
     registry.register(new ShellTool());
     registry.register(new FileReadTool(resolveWorkspaceDir()));
-
     registry.register(new FileWriteTool(resolveWorkspaceDir()));
+    registry.register(new ListDirTool(resolveWorkspaceDir()));
+
 
 
     
     AgentbotProperties.Search searchConfig = properties.getSearch();
     if ("brave".equalsIgnoreCase(searchConfig.getType())) {
       registry.register(new BraveSearchTool(searchConfig.getBraveApiKey()));
+    } else if ("apimesh".equalsIgnoreCase(searchConfig.getType())) {
+      registry.register(new ApimeshSearchTool(searchConfig.getApimeshKey()));
     } else {
       registry.register(new BochaSearchTool(searchConfig.getBochaApiKey()));
     }
 
+
     registry.register(new MessageTool(messageBus));
+    registry.register(new P2pMessageTool(messageBus));
 
     registry.register(new SpawnTool(subAgentManager));
+
     registry.register(new BrowserTool(browserService));
     return registry;
   }
@@ -180,6 +186,7 @@ public class AgentConfiguration {
   ) {
     return new AgentFactory(
         resolveWorkspaceDir(),
+        properties,
         llmProvider,
         toolRegistry,
         skillLoader,
@@ -264,16 +271,11 @@ public class AgentConfiguration {
 
   @Bean
   public AgentDispatcher agentDispatcher(ExternalMessageBus bus, AgentRouter router, AgentRegistry registry) {
-    // Convert AgentRegistry to runtime map
-    Map<String, AgentRuntime> runtimes = new java.util.HashMap<>();
-    registry.getAllAgents().forEach((id, instance) -> {
-      runtimes.put(id, instance.getRuntime());
-    });
-    
-    AgentDispatcher dispatcher = new AgentDispatcher(bus, router, runtimes);
+    AgentDispatcher dispatcher = new AgentDispatcher(bus, router, registry);
     dispatcher.start();
     return dispatcher;
   }
+
 
 
   @Bean
@@ -283,7 +285,8 @@ public class AgentConfiguration {
     if (defaultAgent == null) {
       throw new RuntimeException("Default agent not found for HeartbeatTaskExecutor");
     }
-    return new HeartbeatTaskExecutor(defaultAgent.getRuntime());
+    return new HeartbeatTaskExecutor(defaultAgent);
+
   }
 
   @Bean
@@ -299,13 +302,14 @@ public class AgentConfiguration {
   
   @Bean
   public AgentRuntime agentRuntime(AgentRegistry registry) {
-    // Provide default agent's runtime for CLI and other services
+    // Provide default agent's runtime for CLI and other services (wrap to update session state)
     AgentInstance defaultAgent = registry.getAgent("default");
     if (defaultAgent == null) {
       throw new RuntimeException("Default agent not found for AgentRuntime bean");
     }
-    return defaultAgent.getRuntime();
+    return defaultAgent::handle;
   }
+
 
   @Bean
   public MemorySearch memorySearch(AgentRegistry registry) {
@@ -491,7 +495,9 @@ public class AgentConfiguration {
         || "glm".equals(lower)
         || "kimi".equals(lower)
         || "qwen".equals(lower)
-        || "minimax".equals(lower);
+        || "minimax".equals(lower)
+        || "apimesh".equals(lower);
+
   }
 
 
@@ -514,6 +520,8 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of("HTTP-Referer", "http://localhost", "X-Title", "agentbot")
           )
       );
@@ -530,6 +538,8 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of()
           )
       );
@@ -546,6 +556,8 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of()
           )
       );
@@ -562,6 +574,8 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of()
           )
       );
@@ -578,6 +592,26 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
+              Map.of()
+          )
+      );
+    }
+
+    if ("apimesh".equals(key)) {
+      AgentbotProperties.Provider p = llm.getApimesh();
+      String model = resolveModel(modelOverride, p.getModel(), null);
+      return new FallbackLlmProvider.ProviderEntry(
+          key,
+          model,
+          new OpenAiCompatibleProvider(
+              p.getBaseUrl(),
+              p.getApiKey(),
+              model,
+              llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of()
           )
       );
@@ -594,10 +628,13 @@ public class AgentConfiguration {
               p.getApiKey(),
               model,
               llm.getTemperature(),
+              llm.isLogHttpRequest(),
+              llm.isLogHttpResponse(),
               Map.of()
           )
       );
     }
+
 
     return null;
   }

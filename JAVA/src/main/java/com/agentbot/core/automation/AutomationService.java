@@ -56,12 +56,33 @@ public class AutomationService {
           outbound.getContent(),
           outbound.getMetadata()
       ));
-      deliverToWebIfNeeded(outbound, delivery);
+      deliverToChannelIfNeeded(outbound, delivery);
       recordWebMessageIfNeeded(outbound, delivery);
+
     }
 
   }
 
+
+  private void deliverToChannelIfNeeded(OutboundMessage outbound, DeliveryOptions delivery) {
+    if (outbound == null || delivery == null || !delivery.enabled) return;
+    String channel = delivery.channel == null ? "" : delivery.channel.trim();
+    if (channel.isBlank()) {
+      channel = "web";
+    }
+    if ("web".equalsIgnoreCase(channel)) {
+      deliverToWebIfNeeded(outbound, delivery);
+      return;
+    }
+    String targetChatId = delivery.to == null || delivery.to.isBlank() ? outbound.getChatId() : delivery.to.trim();
+    if (targetChatId == null || targetChatId.isBlank()) return;
+    messageBus.publish(MessageEnvelope.externalOutbound(
+        channel,
+        targetChatId,
+        outbound.getContent(),
+        outbound.getMetadata()
+    ));
+  }
 
   private void deliverToWebIfNeeded(OutboundMessage outbound, DeliveryOptions delivery) {
     if (outbound == null || delivery == null || !delivery.enabled) return;
@@ -84,18 +105,40 @@ public class AutomationService {
     ));
   }
 
+
   private void recordWebMessageIfNeeded(OutboundMessage outbound, DeliveryOptions delivery) {
     if (outbound == null || !shouldRecordWeb(delivery)) return;
     if (sessionService == null) return;
     String chatId = resolveWebChatId(outbound, delivery);
     if (chatId == null || chatId.isBlank()) return;
     if (outbound.getContent() == null || outbound.getContent().isBlank()) return;
-    String sessionKey = "web:" + chatId;
+    String agentId = resolveWebAgentId(outbound, delivery);
+    String sessionKey = buildWebSessionKey(agentId, chatId);
     sessionService.appendAssistantMessage(sessionKey, outbound.getContent());
     if (unreadService != null) {
       unreadService.increment("web", chatId);
     }
   }
+
+  private String resolveWebAgentId(OutboundMessage outbound, DeliveryOptions delivery) {
+    if (delivery != null && delivery.to != null && !delivery.to.isBlank()) {
+      return delivery.to.trim();
+    }
+    if (outbound != null && outbound.getMetadata() != null) {
+      Object agentId = outbound.getMetadata().get("agentId");
+      if (agentId != null && !String.valueOf(agentId).isBlank()) {
+        return String.valueOf(agentId).trim();
+      }
+    }
+    return "default";
+  }
+
+  private String buildWebSessionKey(String agentId, String chatId) {
+    String safeAgent = agentId == null || agentId.isBlank() ? "default" : agentId.trim().toLowerCase();
+    String safeChatId = chatId == null || chatId.isBlank() ? "unknown" : chatId.trim().toLowerCase();
+    return "agent:" + safeAgent + ":web:default:dm:" + safeChatId;
+  }
+
 
   private boolean shouldRecordWeb(DeliveryOptions delivery) {
     if (isSseMode()) return false;

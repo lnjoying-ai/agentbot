@@ -1,10 +1,16 @@
 import { ref } from "vue";
 import { getApiBaseUrl } from "./config";
+function generateId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 const messagesList = ref([
     {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "assistant",
-        content: "欢迎来到 Agentbot 控制台，请描述你的任务，我会同步工具与上下文。",
+        content: "欢迎来到 Agentbot，请描述你的任务，我会同步工具与上下文。",
         timestamp: new Date().toLocaleTimeString()
     }
 ]);
@@ -24,10 +30,10 @@ function buildAssistantMessage(data, agentId) {
         ? baseToolResults.map((tool) => ({ ...tool, agentId }))
         : baseToolResults;
     return {
-        id: data.id || crypto.randomUUID(),
+        id: data.id || generateId(),
         role: "assistant",
         content: data.content,
-        timestamp: new Date(data.timestamp).toLocaleTimeString(),
+        timestamp: new Date(data.timestamp).toISOString(),
         toolResults
     };
 }
@@ -55,9 +61,22 @@ async function postChat(text, options = {}) {
     }
     return response.json();
 }
+async function uploadFile(file) {
+    const baseUrl = getApiBaseUrl() || window.location.origin;
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch(`${baseUrl}/api/chat/upload`, {
+        method: "POST",
+        body: form
+    });
+    if (!response.ok) {
+        throw new Error(await response.text());
+    }
+    return response.json();
+}
 async function sendUserMessage(text) {
     const userMsg = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "user",
         content: text,
         timestamp: new Date().toLocaleTimeString()
@@ -72,10 +91,10 @@ async function sendUserMessage(text) {
     catch (error) {
         console.error("Failed to send message:", error);
         messagesList.value.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: "assistant",
             content: "抱歉，由于网络或后端服务异常，我暂时无法处理您的请求。",
-            timestamp: new Date().toLocaleTimeString()
+            timestamp: new Date().toISOString()
         });
         return null;
     }
@@ -86,7 +105,7 @@ async function sendUserMessageForAgent(text, agentId) {
 }
 async function confirmTool(toolCallId, options = {}) {
     const userMsg = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "user",
         content: "确认执行工具操作",
         timestamp: new Date().toLocaleTimeString()
@@ -113,7 +132,7 @@ async function confirmTool(toolCallId, options = {}) {
 }
 async function cancelTool(toolCallId, options = {}) {
     const userMsg = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "user",
         content: "取消执行工具操作",
         timestamp: new Date().toLocaleTimeString()
@@ -214,6 +233,7 @@ export function useChatStore() {
         cancelTool,
         fetchSessions,
         fetchHistory,
-        connectStream
+        connectStream,
+        uploadFile
     };
 }

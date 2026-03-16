@@ -8,42 +8,42 @@
 
       
       <div class="info-section">
-        <h4>基本信息</h4>
+        <h4>{{ t("agent.info.base") }}</h4>
         <div class="info-row">
-          <span class="label">ID:</span>
+          <span class="label">{{ t("agent.info.id") }}</span>
           <span class="value">{{ agentStore.currentAgent.value.id }}</span>
         </div>
         <div class="info-row">
-          <span class="label">描述:</span>
+          <span class="label">{{ t("agent.info.desc") }}</span>
           <span class="value">{{ currentAgentDescription }}</span>
         </div>
         <div class="info-row">
-          <span class="label">状态:</span>
+          <span class="label">{{ t("agent.info.status") }}</span>
           <span class="value">{{ statusText }}</span>
         </div>
 
       </div>
       
       <div class="info-section">
-        <h4>能力配置</h4>
+        <h4>{{ t("agent.info.capabilities") }}</h4>
         <div class="capability-item">
-          <span class="capability-label">技能</span>
+          <span class="capability-label">{{ t("agent.info.skills") }}</span>
           <div v-if="skillsData" class="skill-list">
             <div v-for="skill in skillsData.available" :key="skill.name" class="skill-row">
               <div class="skill-main">
                 <div class="skill-name">
                   {{ skill.name }}
                   <span class="pill" :class="skill.blocked ? 'pill-warning' : 'pill-success'">
-                    {{ skill.blocked ? '阻塞' : '可用' }}
+                    {{ skill.blocked ? t("agent.info.skillBlocked") : t("agent.info.skillAvailable") }}
                   </span>
                 </div>
-                <div class="skill-desc">{{ skill.description || '暂无描述' }}</div>
-                <div v-if="missingText(skill)" class="skill-missing">缺失：{{ missingText(skill) }}</div>
+                <div class="skill-desc">{{ skill.description || t("agent.info.skillNoDesc") }}</div>
+                <div v-if="missingText(skill)" class="skill-missing">{{ t("agent.info.skillMissing", { text: missingText(skill) }) }}</div>
               </div>
               <div class="skill-actions">
                 <label class="toggle">
                   <input type="checkbox" :checked="isSkillEnabled(skill.name)" @change="onToggleSkill(skill.name, $event)" />
-                  <span>启用</span>
+                  <span>{{ t("agent.info.enable") }}</span>
                 </label>
                 <div v-if="skill.primaryEnv" class="apikey" >
                   <input
@@ -52,27 +52,27 @@
                     @input="(e:any) => onEditApiKey(skill.name, e.target.value)"
                     :placeholder="`API Key (${skill.primaryEnv})`"
                   />
-                  <button class="btn btn-small" @click="onSaveApiKey(skill.name)" :disabled="savingSkill === skill.name">保存</button>
+                  <button class="btn btn-small" @click="onSaveApiKey(skill.name)" :disabled="savingSkill === skill.name">{{ t("agent.info.save") }}</button>
                 </div>
               </div>
             </div>
-            <div v-if="skillsData.available.length === 0" class="empty-text">暂无技能文件</div>
+            <div v-if="skillsData.available.length === 0" class="empty-text">{{ t("agent.info.noSkillFiles") }}</div>
           </div>
-          <div v-else class="empty-text">未加载技能</div>
+          <div v-else class="empty-text">{{ t("agent.info.noSkillsLoaded") }}</div>
         </div>
         <div class="capability-item">
-          <span class="capability-label">继承工具 ({{ inheritedTools.length }})</span>
+          <span class="capability-label">{{ t("agent.info.inheritedTools", { count: inheritedTools.length }) }}</span>
           <div class="tag-list">
             <span v-for="tool in inheritedTools" :key="tool" class="tag tag-tool">
               {{ tool }}
             </span>
             <span v-if="inheritedTools.length === 0" class="empty-text">
-              继承全部系统工具
+              {{ t("agent.info.inheritAll") }}
             </span>
           </div>
         </div>
         <div v-if="disabledTools.length > 0" class="capability-item">
-          <span class="capability-label">禁用工具 ({{ disabledTools.length }})</span>
+          <span class="capability-label">{{ t("agent.info.disabledTools", { count: disabledTools.length }) }}</span>
           <div class="tag-list">
             <span v-for="tool in disabledTools" :key="tool" class="tag tag-disabled">
               {{ tool }}
@@ -82,34 +82,35 @@
 
       </div>
 
+
       
       <div class="info-section">
-        <h4>路由配置</h4>
+        <h4>{{ t("agent.info.routing") }}</h4>
         <div class="info-row">
-          <span class="label">优先级:</span>
+          <span class="label">{{ t("agent.info.priority") }}</span>
           <span class="value">
             <span class="priority-badge">{{ routingPriority }}</span>
           </span>
         </div>
         <div class="capability-item">
-          <span class="capability-label">关键词</span>
+          <span class="capability-label">{{ t("agent.info.keywords") }}</span>
           <div class="tag-list">
             <span v-for="keyword in routingKeywords" :key="keyword" class="tag tag-keyword">
               {{ keyword }}
             </span>
             <span v-if="routingKeywords.length === 0" class="empty-text">
-              无关键词路由
+              {{ t("agent.info.noKeywords") }}
             </span>
           </div>
         </div>
         <div class="capability-item">
-          <span class="capability-label">渠道绑定</span>
+          <span class="capability-label">{{ t("agent.info.channels") }}</span>
           <div class="tag-list">
             <span v-for="channel in routingChannels" :key="channel" class="tag tag-channel">
               {{ channel }}
             </span>
             <span v-if="routingChannels.length === 0" class="empty-text">
-              无渠道绑定
+              {{ t("agent.info.noChannels") }}
             </span>
           </div>
         </div>
@@ -117,40 +118,44 @@
       </div>
       
       <div v-if="statistics" class="info-section">
-        <h4>统计信息</h4>
+        <h4>{{ t("agent.info.stats") }}</h4>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value">{{ statistics.messagesProcessed }}</div>
-            <div class="stat-label">处理消息数</div>
+            <div class="stat-label">{{ t("agent.info.messagesProcessed") }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ statistics.averageResponseTime }}ms</div>
-            <div class="stat-label">平均响应时间</div>
+            <div class="stat-label">{{ t("agent.info.avgResponse") }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ (statistics.successRate * 100).toFixed(1) }}%</div>
-            <div class="stat-label">成功率</div>
+            <div class="stat-label">{{ t("agent.info.successRate") }}</div>
           </div>
         </div>
       </div>
       
       <div class="panel-actions">
-        <button class="btn btn-secondary" @click="refreshStats">刷新统计</button>
-        <button class="btn btn-primary" @click="editAgent">编辑配置</button>
+        <button class="btn btn-secondary" @click="refreshStats">{{ t("agent.info.refreshStats") }}</button>
+        <button class="btn btn-primary" @click="editAgent">{{ t("agent.info.editConfig") }}</button>
       </div>
     </div>
     
     <div v-else class="empty-state">
-      <p>未选择 Agent</p>
+      <p>{{ t("agent.info.empty") }}</p>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from "../i18n";
 
 const agentStore = useAgentStore();
+const { t } = useI18n();
+
 const statistics = ref<any>(null);
 const savingSkill = ref<string | null>(null);
 const editingApiKey = ref<Record<string, string>>({});
@@ -158,13 +163,14 @@ const editingApiKey = ref<Record<string, string>>({});
 
 const currentAgentName = computed(() => {
   const agent = agentStore.currentAgent.value;
-  return agent?.displayName || agent?.name || agent?.id || '未选择';
+  return agent?.displayName || agent?.name || agent?.id || t("chat.noAgentSelected");
 });
 
 const currentAgentDescription = computed(() => {
   const agent = agentStore.currentAgent.value;
-  return agent?.description || '暂无描述';
+  return agent?.description || t("agent.info.skillNoDesc");
 });
+
 
 const statusClass = computed(() => {
   const agent = agentStore.currentAgent.value;
@@ -176,11 +182,12 @@ const statusClass = computed(() => {
 
 const statusText = computed(() => {
   const agent = agentStore.currentAgent.value;
-  if (!agent) return '未知';
-  if (agent.enabled === false) return '已禁用';
-  if (agent.healthy === false) return '异常';
-  return '正常';
+  if (!agent) return t("agent.status.unknown");
+  if (agent.enabled === false) return t("agent.status.disabled");
+  if (agent.healthy === false) return t("agent.status.error");
+  return t("agent.status.ok");
 });
+
 
 const skillsData = computed(() => agentStore.agentSkills.get(agentStore.currentAgentId.value) || null);
 const inheritedTools = computed(() => agentStore.currentAgent.value?.capabilities?.tools?.inherited || []);
@@ -265,7 +272,8 @@ async function refreshStats() {
 
 function editAgent() {
   // TODO: Open edit dialog
-  alert('编辑功能待实现');
+  alert(t("agent.info.editTodo"));
+
 }
 </script>
 

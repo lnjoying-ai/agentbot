@@ -1,0 +1,60 @@
+{
+  "id" : "042",
+  "name" : "Tom",
+  "description" : "",
+  "avatar" : "",
+  "enabled" : true,
+  "personality" : {
+    "useSoul" : true,
+    "soulPath" : null,
+    "fallbackToSystem" : true
+  },
+  "behavior" : {
+    "useAgentMd" : true,
+    "agentMdPath" : null,
+    "fallbackToSystem" : true
+  },
+  "capabilities" : {
+    "tools" : {
+      "inherited" : [ ],
+      "disabled" : [ ],
+      "custom" : [ ]
+    },
+    "skills" : {
+      "inherited" : true,
+      "customPath" : "",
+      "entries" : { }
+    }
+  },
+  "memory" : {
+    "enabled" : true,
+    "path" : null,
+    "maxLongTermLines" : 500,
+    "maxDailyLines" : 1000
+  },
+  "sessions" : {
+    "path" : null,
+    "maxHistoryMessages" : 20,
+    "retentionDays" : 30
+  },
+  "routing" : {
+    "channels" : [ ],
+    "keywords" : [ ],
+    "priority" : 0,
+    "autoRoute" : false
+  },
+  "llm" : {
+    "provider" : null,
+    "model" : null,
+    "temperature" : 0.7,
+    "maxTokens" : 4096,
+    "overrideSystem" : false,
+    "maxToolRounds" : 30,
+    "parallelTools" : true,
+    "toolParallelism" : 3
+  },
+  "metadata" : { },
+  "displayName" : "Tom（Money For You）",
+  "createdAt" : "2026-03-13T17:06:36.545923600Z",
+  "updatedAt" : "2026-03-13T17:06:36.545923600Z"
+}

@@ -57,9 +57,17 @@ public class FileWriteTool implements ToolWithDefinition {
         try {
             Path path = Path.of(pathStr);
             if (!path.isAbsolute() && workspaceDir != null) {
-                Path tmpDir = workspaceDir.resolve("tmp");
-                Files.createDirectories(tmpDir);
-                path = tmpDir.resolve(pathStr).normalize();
+                if (pathStr.startsWith("workspace/") || pathStr.startsWith("workspace\\")) {
+                    String relative = pathStr.substring("workspace".length());
+                    while (relative.startsWith("/") || relative.startsWith("\\")) {
+                        relative = relative.substring(1);
+                    }
+                    path = workspaceDir.resolve(relative).normalize();
+                } else {
+                    Path tmpDir = workspaceDir.resolve("tmp");
+                    Files.createDirectories(tmpDir);
+                    path = tmpDir.resolve(pathStr).normalize();
+                }
             }
 
             if (path.getParent() != null) {
@@ -70,5 +78,6 @@ public class FileWriteTool implements ToolWithDefinition {
         } catch (Exception e) {
             return new ToolExecutionResult(false, "Failed to write file: " + e.getMessage());
         }
+
     }
 }

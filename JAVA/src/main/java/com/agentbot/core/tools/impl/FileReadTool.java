@@ -12,22 +12,27 @@ import java.util.Map;
 
 public class FileReadTool implements ToolWithDefinition {
     private final List<Path> searchRoots;
+    private final Path workspaceDir;
 
     public FileReadTool() {
         this(null);
     }
 
     public FileReadTool(Path workspaceDir) {
+        this.workspaceDir = workspaceDir == null ? null : workspaceDir.toAbsolutePath().normalize();
         List<Path> roots = new ArrayList<>();
-        if (workspaceDir != null) {
-            Path ws = workspaceDir.toAbsolutePath().normalize();
+        if (this.workspaceDir != null) {
+            Path ws = this.workspaceDir;
             roots.add(ws);
+            roots.add(ws.resolve("tmp"));
             roots.add(ws.resolve("skills"));
             roots.add(ws.resolve("system").resolve("skills"));
             roots.add(ws.resolve("agents"));
         }
         this.searchRoots = List.copyOf(roots);
     }
+
+
 
     @Override
     public String name() {
@@ -59,6 +64,19 @@ public class FileReadTool implements ToolWithDefinition {
         try {
             Path path = Path.of(pathStr);
             if (!path.isAbsolute()) {
+                if (this.workspaceDir != null && (pathStr.startsWith("workspace/") || pathStr.startsWith("workspace\\"))) {
+                    String relative = pathStr.substring("workspace".length());
+                    while (relative.startsWith("/") || relative.startsWith("\\")) {
+                        relative = relative.substring(1);
+                    }
+                    Path candidate = this.workspaceDir.resolve(relative).normalize();
+                    if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
+                        String content = Files.readString(candidate);
+                        return new ToolExecutionResult(true, content);
+                    }
+                    return new ToolExecutionResult(false, "File not found: " + pathStr);
+                }
+
                 if (Files.exists(path) && Files.isRegularFile(path)) {
                     String content = Files.readString(path);
                     return new ToolExecutionResult(true, content);
@@ -72,6 +90,8 @@ public class FileReadTool implements ToolWithDefinition {
                 }
                 return new ToolExecutionResult(false, "File not found: " + pathStr);
             }
+
+
             if (!Files.exists(path) || !Files.isRegularFile(path)) {
                 return new ToolExecutionResult(false, "File not found: " + pathStr);
             }

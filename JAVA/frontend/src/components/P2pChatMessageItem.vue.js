@@ -1,25 +1,38 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed } from "vue";
+import { useI18n } from "../i18n";
 const props = defineProps();
+const { t } = useI18n();
 const headerLabel = computed(() => {
     if (props.message.direction === "outbound") {
-        return `本地 → ${props.message.toNodeId || ""}${props.message.toAgentId ? "/" + props.message.toAgentId : ""}`;
+        const target = `${props.message.toNodeId || ""}${props.message.toAgentId ? "/" + props.message.toAgentId : ""}`.trim();
+        return t("p2p.header.localTo", { target });
     }
-    return `${props.message.fromNodeId || "外部"}${props.message.fromAgentId ? "/" + props.message.fromAgentId : ""} → 本地`;
+    const source = `${props.message.fromNodeId || t("p2p.source.external")}${props.message.fromAgentId ? "/" + props.message.fromAgentId : ""}`.trim();
+    return t("p2p.header.remoteToLocal", { source });
 });
 const statusLabel = computed(() => {
     switch (props.message.status) {
         case "ACKED":
-            return "已送达";
+            return t("p2p.status.acked");
         case "NACKED":
-            return "失败";
+            return t("p2p.status.nacked");
         case "FAILED":
-            return "发送失败";
+            return t("p2p.status.failed");
         case "RECEIVED":
-            return "已接收";
+            return t("p2p.status.received");
         default:
-            return "已发送";
+            return t("p2p.status.sent");
     }
+});
+const formattedTimestamp = computed(() => {
+    const raw = props.message.timestamp;
+    if (!raw)
+        return "";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime()))
+        return raw;
+    return date.toLocaleString();
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -42,7 +55,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
 (__VLS_ctx.headerLabel);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-(__VLS_ctx.message.timestamp);
+(__VLS_ctx.formattedTimestamp);
 if (__VLS_ctx.message.status) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "status" },
@@ -58,7 +71,7 @@ if (__VLS_ctx.message.reason) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "message-reason" },
     });
-    (__VLS_ctx.message.reason);
+    (__VLS_ctx.t("p2p.failReason", { reason: __VLS_ctx.message.reason }));
 }
 /** @type {__VLS_StyleScopedClasses['p2p-message']} */ ;
 /** @type {__VLS_StyleScopedClasses['message-meta']} */ ;
@@ -69,8 +82,10 @@ var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            t: t,
             headerLabel: headerLabel,
             statusLabel: statusLabel,
+            formattedTimestamp: formattedTimestamp,
         };
     },
     __typeProps: {},

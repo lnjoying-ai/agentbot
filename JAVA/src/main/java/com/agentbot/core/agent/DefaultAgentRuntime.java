@@ -33,7 +33,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DefaultAgentRuntime implements AgentRuntime {
   private static final Logger log = LoggerFactory.getLogger(DefaultAgentRuntime.class);
   private static final AtomicLong totalToolCalls = new AtomicLong(0);
+  private final java.util.Map<String, String> lastWrittenFileBySession = new java.util.concurrent.ConcurrentHashMap<>();
   private final LLMProvider provider;
+
 
   private final ToolRegistry tools;
   private final ToolCallParser toolCallParser;
@@ -226,7 +228,8 @@ public class DefaultAgentRuntime implements AgentRuntime {
     
     List<Map<String, Object>> messages = new ArrayList<>(pending.messages);
     sessionService.appendAssistantMessage(sessionKey, buildToolStatusMessage(pending.allToolCalls, false));
-    ToolBatchResult batchResult = executeToolBatch(pending.allToolCalls, message.getChannel());
+    ToolBatchResult batchResult = executeToolBatch(sessionKey, pending.allToolCalls, message.getChannel());
+
     Map<String, String> results = batchResult.results();
 
     for (Map<String, Object> tc : pending.allToolCalls) {
@@ -287,6 +290,8 @@ public class DefaultAgentRuntime implements AgentRuntime {
         msg.put("content", content == null ? "" : content);
         messages.add(msg);
     });
+
+
     
     while (messages.size() > (memory.isEmpty() ? 0 : 1) && !"user".equals(messages.get(memory.isEmpty() ? 0 : 1).get("role"))) {
         messages.remove(memory.isEmpty() ? 0 : 1);
@@ -341,6 +346,8 @@ public class DefaultAgentRuntime implements AgentRuntime {
               response.getReasoningContent() == null ? 0 : response.getReasoningContent().length());
       }
       sessionService.appendAssistantMessage(sessionKey, displayContent);
+
+
 
 
       // 1. PRE-CHECK for any tools requiring approval
@@ -413,7 +420,8 @@ public class DefaultAgentRuntime implements AgentRuntime {
 
 
       // 2. All tools are safe, execute them as a batch
-      ToolBatchResult batchResult = executeToolBatch(toolCalls, message.getChannel());
+      ToolBatchResult batchResult = executeToolBatch(sessionKey, toolCalls, message.getChannel());
+
 
       Map<String, String> results = batchResult.results();
 
@@ -729,7 +737,7 @@ public class DefaultAgentRuntime implements AgentRuntime {
     }
   }
 
-  private ToolBatchResult executeToolBatch(List<Map<String, Object>> toolCalls, String channel) {
+  private ToolBatchResult executeToolBatch(String sessionKey, List<Map<String, Object>> toolCalls, String channel) {
     long startedAt = System.currentTimeMillis();
     List<CompletableFuture<ToolExecutionResult>> futures = new ArrayList<>();
     List<String> futureIds = new ArrayList<>();
@@ -748,6 +756,9 @@ public class DefaultAgentRuntime implements AgentRuntime {
           continue;
         }
         totalToolCalls.incrementAndGet();
+        if ("shell".equalsIgnoreCase(name)) {
+          applyWriteFileAbsolutePath(sessionKey, args);
+        }
         args.put("confirmed", true); // Force execute since it's pre-approved or safe
         futures.add(CompletableFuture.supplyAsync(() -> {
             try {
@@ -779,14 +790,107 @@ public class DefaultAgentRuntime implements AgentRuntime {
           continue;
         }
         totalToolCalls.incrementAndGet();
+        if ("shell".equalsIgnoreCase(name)) {
+          applyWriteFileAbsolutePath(sessionKey, args);
+        }
         args.put("confirmed", true);
         results.put(id, tools.execute(name, args).getOutput());
+      }
+    }
+    if (toolCalls != null) {
+      for (Map<String, Object> tc : toolCalls) {
+        String name = String.valueOf(tc.get("name"));
+        if (!"write_file".equalsIgnoreCase(name)) continue;
+        String id = String.valueOf(tc.get("id"));
+        updateLastWrittenFile(sessionKey, results.get(id));
       }
     }
     long durationMs = System.currentTimeMillis() - startedAt;
     log.debug("Tool batch executed: count={}, parallel={}, durationMs={}", toolCalls == null ? 0 : toolCalls.size(), parallelTools, durationMs);
     return new ToolBatchResult(results, durationMs);
   }
+
+  private void updateLastWrittenFile(String sessionKey, String output) {
+    if (sessionKey == null || sessionKey.isBlank() || output == null) return;
+    String prefix = "File written successfully to ";
+    int idx = output.indexOf(prefix);
+    if (idx < 0) return;
+    String path = output.substring(idx + prefix.length()).trim();
+    if (path.isBlank()) return;
+    lastWrittenFileBySession.put(sessionKey, path);
+  }
+
+  private void applyWriteFileAbsolutePath(String sessionKey, Map<String, Object> args) {
+    if (sessionKey == null || sessionKey.isBlank() || args == null) return;
+    String command = args.get("command") == null ? null : String.valueOf(args.get("command"));
+    if (command == null || command.isBlank()) return;
+    String absolutePath = lastWrittenFileBySession.get(sessionKey);
+    if (absolutePath == null || absolutePath.isBlank()) return;
+    String updated = replaceRelativeScriptPath(command, absolutePath);
+    if (!updated.equals(command)) {
+      args.put("command", updated);
+    }
+  }
+
+  private String replaceRelativeScriptPath(String command, String absolutePath) {
+    if (command == null || absolutePath == null) return command;
+    if (command.contains(absolutePath)) return command;
+    java.nio.file.Path absPath;
+    try {
+      absPath = java.nio.file.Path.of(absolutePath);
+    } catch (Exception e) {
+      return command;
+    }
+    if (absPath.getFileName() == null) return command;
+    String fileName = absPath.getFileName().toString();
+    if (fileName.isBlank()) return command;
+    String replacement = quotePathIfNeeded(absPath.toString());
+
+    String updated = replaceToken(command, "\"", fileName, replacement);
+    updated = replaceToken(updated, "'", fileName, replacement);
+    updated = replaceUnquotedToken(updated, fileName, replacement);
+    return updated;
+  }
+
+  private String quotePathIfNeeded(String path) {
+    if (path == null || path.isBlank()) return path;
+    if (path.contains(" ")) {
+      return "\"" + path + "\"";
+    }
+    return path;
+  }
+
+  private String replaceToken(String command, String quote, String fileName, String replacement) {
+    String token = quote + fileName + quote;
+    String alt1 = quote + "./" + fileName + quote;
+    String alt2 = quote + ".\\" + fileName + quote;
+    String updated = command;
+    if (updated.contains(token)) {
+      updated = updated.replace(token, quote + replacement + quote);
+    }
+    if (updated.contains(alt1)) {
+      updated = updated.replace(alt1, quote + replacement + quote);
+    }
+    if (updated.contains(alt2)) {
+      updated = updated.replace(alt2, quote + replacement + quote);
+    }
+    return updated;
+  }
+
+  private String replaceUnquotedToken(String command, String fileName, String replacement) {
+    String pattern = "(?i)(^|\\s)(?:\\./|\\.\\\\)?" + java.util.regex.Pattern.quote(fileName) + "(?=\\s|$)";
+    java.util.regex.Pattern regex = java.util.regex.Pattern.compile(pattern);
+    java.util.regex.Matcher matcher = regex.matcher(command);
+    if (!matcher.find()) return command;
+    StringBuffer sb = new StringBuffer();
+    do {
+      String leading = matcher.group(1) == null ? "" : matcher.group(1);
+      matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(leading + replacement));
+    } while (matcher.find());
+    matcher.appendTail(sb);
+    return sb.toString();
+  }
+
 
 
   private record ToolBatchResult(Map<String, String> results, long durationMs) {}

@@ -1,17 +1,19 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, ref, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from "../i18n";
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const statistics = ref(null);
 const savingSkill = ref(null);
 const editingApiKey = ref({});
 const currentAgentName = computed(() => {
     const agent = agentStore.currentAgent.value;
-    return agent?.displayName || agent?.name || agent?.id || '未选择';
+    return agent?.displayName || agent?.name || agent?.id || t("chat.noAgentSelected");
 });
 const currentAgentDescription = computed(() => {
     const agent = agentStore.currentAgent.value;
-    return agent?.description || '暂无描述';
+    return agent?.description || t("agent.info.skillNoDesc");
 });
 const statusClass = computed(() => {
     const agent = agentStore.currentAgent.value;
@@ -26,12 +28,12 @@ const statusClass = computed(() => {
 const statusText = computed(() => {
     const agent = agentStore.currentAgent.value;
     if (!agent)
-        return '未知';
+        return t("agent.status.unknown");
     if (agent.enabled === false)
-        return '已禁用';
+        return t("agent.status.disabled");
     if (agent.healthy === false)
-        return '异常';
-    return '正常';
+        return t("agent.status.error");
+    return t("agent.status.ok");
 });
 const skillsData = computed(() => agentStore.agentSkills.get(agentStore.currentAgentId.value) || null);
 const inheritedTools = computed(() => agentStore.currentAgent.value?.capabilities?.tools?.inherited || []);
@@ -111,7 +113,7 @@ async function refreshStats() {
 }
 function editAgent() {
     // TODO: Open edit dialog
-    alert('编辑功能待实现');
+    alert(t("agent.info.editTodo"));
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -151,12 +153,14 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         ...{ class: "info-section" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h4, __VLS_intrinsicElements.h4)({});
+    (__VLS_ctx.t("agent.info.base"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "info-row" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "label" },
     });
+    (__VLS_ctx.t("agent.info.id"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "value" },
     });
@@ -167,6 +171,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "label" },
     });
+    (__VLS_ctx.t("agent.info.desc"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "value" },
     });
@@ -177,6 +182,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "label" },
     });
+    (__VLS_ctx.t("agent.info.status"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "value" },
     });
@@ -185,12 +191,14 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         ...{ class: "info-section" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h4, __VLS_intrinsicElements.h4)({});
+    (__VLS_ctx.t("agent.info.capabilities"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "capability-item" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "capability-label" },
     });
+    (__VLS_ctx.t("agent.info.skills"));
     if (__VLS_ctx.skillsData) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "skill-list" },
@@ -211,16 +219,16 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
                 ...{ class: "pill" },
                 ...{ class: (skill.blocked ? 'pill-warning' : 'pill-success') },
             });
-            (skill.blocked ? '阻塞' : '可用');
+            (skill.blocked ? __VLS_ctx.t("agent.info.skillBlocked") : __VLS_ctx.t("agent.info.skillAvailable"));
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                 ...{ class: "skill-desc" },
             });
-            (skill.description || '暂无描述');
+            (skill.description || __VLS_ctx.t("agent.info.skillNoDesc"));
             if (__VLS_ctx.missingText(skill)) {
                 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                     ...{ class: "skill-missing" },
                 });
-                (__VLS_ctx.missingText(skill));
+                (__VLS_ctx.t("agent.info.skillMissing", { text: __VLS_ctx.missingText(skill) }));
             }
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                 ...{ class: "skill-actions" },
@@ -240,6 +248,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
                 checked: (__VLS_ctx.isSkillEnabled(skill.name)),
             });
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+            (__VLS_ctx.t("agent.info.enable"));
             if (skill.primaryEnv) {
                 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                     ...{ class: "apikey" },
@@ -263,18 +272,21 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
                     ...{ class: "btn btn-small" },
                     disabled: (__VLS_ctx.savingSkill === skill.name),
                 });
+                (__VLS_ctx.t("agent.info.save"));
             }
         }
         if (__VLS_ctx.skillsData.available.length === 0) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                 ...{ class: "empty-text" },
             });
+            (__VLS_ctx.t("agent.info.noSkillFiles"));
         }
     }
     else {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "empty-text" },
         });
+        (__VLS_ctx.t("agent.info.noSkillsLoaded"));
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "capability-item" },
@@ -282,7 +294,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "capability-label" },
     });
-    (__VLS_ctx.inheritedTools.length);
+    (__VLS_ctx.t("agent.info.inheritedTools", { count: __VLS_ctx.inheritedTools.length }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "tag-list" },
     });
@@ -297,6 +309,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ class: "empty-text" },
         });
+        (__VLS_ctx.t("agent.info.inheritAll"));
     }
     if (__VLS_ctx.disabledTools.length > 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -305,7 +318,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ class: "capability-label" },
         });
-        (__VLS_ctx.disabledTools.length);
+        (__VLS_ctx.t("agent.info.disabledTools", { count: __VLS_ctx.disabledTools.length }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "tag-list" },
         });
@@ -321,12 +334,14 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         ...{ class: "info-section" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h4, __VLS_intrinsicElements.h4)({});
+    (__VLS_ctx.t("agent.info.routing"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "info-row" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "label" },
     });
+    (__VLS_ctx.t("agent.info.priority"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "value" },
     });
@@ -340,6 +355,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "capability-label" },
     });
+    (__VLS_ctx.t("agent.info.keywords"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "tag-list" },
     });
@@ -354,6 +370,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ class: "empty-text" },
         });
+        (__VLS_ctx.t("agent.info.noKeywords"));
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "capability-item" },
@@ -361,6 +378,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "capability-label" },
     });
+    (__VLS_ctx.t("agent.info.channels"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "tag-list" },
     });
@@ -375,12 +393,14 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ class: "empty-text" },
         });
+        (__VLS_ctx.t("agent.info.noChannels"));
     }
     if (__VLS_ctx.statistics) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "info-section" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.h4, __VLS_intrinsicElements.h4)({});
+        (__VLS_ctx.t("agent.info.stats"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stats-grid" },
         });
@@ -394,6 +414,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stat-label" },
         });
+        (__VLS_ctx.t("agent.info.messagesProcessed"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stat-card" },
         });
@@ -404,6 +425,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stat-label" },
         });
+        (__VLS_ctx.t("agent.info.avgResponse"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stat-card" },
         });
@@ -414,6 +436,7 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "stat-label" },
         });
+        (__VLS_ctx.t("agent.info.successRate"));
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "panel-actions" },
@@ -422,16 +445,19 @@ if (__VLS_ctx.agentStore.currentAgent.value) {
         ...{ onClick: (__VLS_ctx.refreshStats) },
         ...{ class: "btn btn-secondary" },
     });
+    (__VLS_ctx.t("agent.info.refreshStats"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.editAgent) },
         ...{ class: "btn btn-primary" },
     });
+    (__VLS_ctx.t("agent.info.editConfig"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "empty-state" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+    (__VLS_ctx.t("agent.info.empty"));
 }
 /** @type {__VLS_StyleScopedClasses['agent-info-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['agent-details']} */ ;
@@ -513,6 +539,7 @@ const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
             agentStore: agentStore,
+            t: t,
             statistics: statistics,
             savingSkill: savingSkill,
             editingApiKey: editingApiKey,

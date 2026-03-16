@@ -26,7 +26,9 @@ import java.nio.file.Path;
 
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
+
 
 
 @SpringBootApplication
@@ -51,7 +53,9 @@ public class AgentbotApplication {
 
     ensureWindowsTrayEnabled();
     ConfigurableApplicationContext context = SpringApplication.run(AgentbotApplication.class, args);
+    logServerAddress(context);
     initializeWindowsTray(context);
+
   }
 
 
@@ -193,7 +197,22 @@ public class AgentbotApplication {
   }
 
 
+  private static void logServerAddress(ConfigurableApplicationContext context) {
+    if (context == null) return;
+    try {
+      String address = context.getEnvironment().getProperty("server.address");
+      if (address == null || address.isBlank()) {
+        address = context.getEnvironment().getProperty("server.ip", "127.0.0.1");
+      }
+      String port = context.getEnvironment().getProperty("server.port", "8080");
+      log.info("Agentbot listening on {}:{}", address, port);
+    } catch (Exception e) {
+      log.warn("Failed to resolve server address", e);
+    }
+  }
+
   private static void initializeWindowsTray(ConfigurableApplicationContext context) {
+
     try {
       String os = System.getProperty("os.name", "").toLowerCase();
       if (!os.contains("win")) {
@@ -211,9 +230,13 @@ public class AgentbotApplication {
       EventQueue.invokeLater(() -> {
         try {
           SystemTray tray = SystemTray.getSystemTray();
-          BufferedImage image = loadTrayImage(tray.getTrayIconSize().width, tray.getTrayIconSize().height);
+          int trayW = tray.getTrayIconSize().width;
+          int trayH = tray.getTrayIconSize().height;
+          Image image = loadTrayImage(trayW * 2, trayH * 2);
           TrayIcon trayIcon = new TrayIcon(image, "agentbot");
+
           trayIcon.setImageAutoSize(true);
+
 
           PopupMenu menu = new PopupMenu();
           MenuItem aboutItem = new MenuItem("About");
@@ -251,25 +274,27 @@ public class AgentbotApplication {
   }
 
 
-  private static BufferedImage loadTrayImage(int width, int height) {
-    int targetW = Math.max(width, 16);
-    int targetH = Math.max(height, 16);
-    BufferedImage fallback = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+  private static Image loadTrayImage(int width, int height) {
+    int targetW = Math.max(width, 64);
+    int targetH = Math.max(height, 64);
+    Image fallback = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
     try {
-      Path logoPath = null;
       Path appDir = ConfigPathResolver.resolveAppDir();
       if (appDir != null) {
-        Path appLogo = appDir.resolve("blue-logo.png");
-        if (Files.exists(appLogo)) {
-          logoPath = appLogo;
+        Path icoPath = appDir.resolve("dragon-logo.ico");
+        if (Files.exists(icoPath)) {
+          Image icoImage = new ImageIcon(icoPath.toString()).getImage();
+          if (icoImage != null) {
+            return icoImage.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
+          }
         }
-      }
-
-      if (logoPath != null) {
-        BufferedImage source = ImageIO.read(logoPath.toFile());
-        if (source != null) {
-          BufferedImage scaled = scaleImage(source, targetW, targetH);
-          return roundCorner(scaled);
+        Path pngPath = appDir.resolve("dragon-logo.png");
+        if (Files.exists(pngPath)) {
+          BufferedImage source = ImageIO.read(pngPath.toFile());
+          if (source != null) {
+            BufferedImage scaled = scaleImage(source, targetW, targetH);
+            return roundCorner(scaled);
+          }
         }
       }
     } catch (Exception e) {
@@ -279,9 +304,10 @@ public class AgentbotApplication {
     return fallback;
   }
 
+
   private static BufferedImage scaleImage(BufferedImage source, int width, int height) {
-    int targetW = Math.max(width, 16);
-    int targetH = Math.max(height, 16);
+    int targetW = Math.max(width, 64);
+    int targetH = Math.max(height, 64);
     Image scaled = source.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
     BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = out.createGraphics();

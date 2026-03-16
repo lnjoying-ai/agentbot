@@ -90,11 +90,14 @@ public class ConfigController {
         "baseUrl", props.getLlm().getMinimax().getBaseUrl(),
         "model", props.getLlm().getMinimax().getModel()
     ));
-
-
-
+    llm.put("apimesh", Map.of(
+        "apiKey", mask(props.getLlm().getApimesh().getApiKey()),
+        "baseUrl", props.getLlm().getApimesh().getBaseUrl(),
+        "model", props.getLlm().getApimesh().getModel()
+    ));
 
     Map<String, Object> channels = new HashMap<>();
+
     channels.put("telegram", Map.of(
         "enabled", props.getChannels().getTelegram().isEnabled(),
         "token", mask(props.getChannels().getTelegram().getToken())

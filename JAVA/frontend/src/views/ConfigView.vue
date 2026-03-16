@@ -1,31 +1,32 @@
 <template>
   <section>
-    <h2 class="section-title">配置中心</h2>
+    <h2 class="section-title">{{ t("config.title") }}</h2>
 
     <div class="card" style="margin-bottom: 20px">
-      <h3>核心参数</h3>
+      <h3>{{ t("config.core") }}</h3>
       <div class="form-grid">
         <div class="form-field">
-          <label>控制台 API Base URL（后端）</label>
+          <label>{{ t("config.baseUrl") }}</label>
           <input v-model="draft.serverBaseUrl" placeholder="http://localhost:8080" />
         </div>
         <div class="form-field" style="grid-column: 1 / -1">
-          <label>配置文件路径</label>
-          <input :value="config.state.configPath || '未获取'" disabled />
+          <label>{{ t("config.configPath") }}</label>
+          <input :value="config.state.configPath || t('config.notAvailable')" disabled />
+
         </div>
       </div>
     </div>
 
     <div v-if="categoryEntries.length === 0" class="card" style="margin-bottom: 20px">
-      <h3>配置加载中</h3>
-      <div class="muted">正在从后端读取配置，请稍候。</div>
+      <h3>{{ t("config.loadingTitle") }}</h3>
+      <div class="muted">{{ t("config.loadingDesc") }}</div>
     </div>
 
     <div v-for="[categoryKey, categoryValue] in categoryEntries" :key="String(categoryKey)" class="card" style="margin-bottom: 20px">
       <div class="card-header">
         <div>
-          <h3>{{ formatLabel(String(categoryKey)) }}</h3>
-          <p class="muted">按分类展示所有配置项，支持直接编辑与保存。</p>
+          <h3>{{ translateLabel(String(categoryKey)) }}</h3>
+          <p class="muted">{{ t("config.categoryDesc") }}</p>
         </div>
       </div>
       <div class="config-grid">
@@ -51,13 +52,13 @@
     </div>
 
     <div class="card">
-      <h3>保存配置</h3>
+      <h3>{{ t("config.saveTitle") }}</h3>
       <div style="color: var(--muted); font-size: 13px">
-        配置将直接同步至后端配置文件 (`agentbot.yml`)。敏感信息在加载时会被掩码处理。
+        {{ t("config.saveDesc") }}
       </div>
       <div class="config-actions">
-        <button class="button" @click="save">保存</button>
-        <button class="button secondary" @click="reset">重新加载</button>
+        <button class="button" @click="save">{{ t("common.save") }}</button>
+        <button class="button secondary" @click="reset">{{ t("common.reload") }}</button>
       </div>
     </div>
   </section>
@@ -67,8 +68,10 @@
 import { computed, onMounted, reactive } from "vue";
 import { useConfigStore } from "../store/config";
 import ConfigNode from "../components/ConfigNode.vue";
+import { useI18n } from "../i18n";
 
 const config = useConfigStore();
+const { t } = useI18n();
 const draft = reactive({ serverBaseUrl: config.state.serverBaseUrl });
 const draftConfig = reactive<Record<string, any>>({});
 
@@ -104,7 +107,7 @@ const save = async () => {
   config.state.serverBaseUrl = draft.serverBaseUrl;
   config.state.config = clone(draftConfig);
   await config.save();
-  alert("配置已保存并同步至服务器");
+  alert(t("config.saved"));
 };
 
 const reset = async () => {
@@ -121,8 +124,16 @@ const formatLabel = (raw: string) => {
     .trim();
 };
 
+const translateLabel = (raw: string) => {
+  const normalized = raw.replace(/[\s_-]/g, "").toLowerCase();
+  const key = `config.label.${normalized}`;
+  const translated = t(key);
+  return translated === key ? formatLabel(raw) : translated;
+};
+
 const isObject = (value: any) => value !== null && typeof value === "object" && !Array.isArray(value);
 </script>
+
 
 <style scoped>
 .card-header {

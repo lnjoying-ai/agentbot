@@ -21,7 +21,7 @@ public class MessageEnvelope {
   public static final String META_GUILD_ID = "guildId";
   public static final String META_TEAM_ID = "teamId";
 
-
+  //web
   private final String topic;
   private final String source;
   private final String target;

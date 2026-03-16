@@ -1,8 +1,10 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, ref, watch } from "vue";
+import { useI18n } from "../i18n";
 defineOptions({ name: "ConfigNode" });
 const props = defineProps();
 const emit = defineEmits();
+const { t } = useI18n();
 const level = computed(() => props.level ?? 0);
 const isObject = computed(() => props.value !== null && typeof props.value === "object" && !Array.isArray(props.value));
 const isArray = computed(() => Array.isArray(props.value));
@@ -57,6 +59,12 @@ const formatLabel = (raw) => {
         .replace(/\s+/g, " ")
         .trim();
 };
+const translateLabel = (raw) => {
+    const normalized = raw.replace(/[\s_-]/g, "").toLowerCase();
+    const key = `config.label.${normalized}`;
+    const translated = t(key);
+    return translated === key ? formatLabel(raw) : translated;
+};
 const isSecretKey = (raw) => {
     const lower = raw.toLowerCase();
     return (lower.includes("key") ||
@@ -78,7 +86,7 @@ if (__VLS_ctx.isObject) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "group-title" },
     });
-    (__VLS_ctx.formatLabel(__VLS_ctx.label));
+    (__VLS_ctx.translateLabel(__VLS_ctx.label));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "group-body" },
     });
@@ -117,7 +125,7 @@ else if (__VLS_ctx.isArray) {
         ...{ style: (__VLS_ctx.groupStyle) },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
-    (__VLS_ctx.formatLabel(__VLS_ctx.label));
+    (__VLS_ctx.translateLabel(__VLS_ctx.label));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea, __VLS_intrinsicElements.textarea)({
         ...{ onBlur: (__VLS_ctx.applyArray) },
         value: (__VLS_ctx.arrayText),
@@ -126,6 +134,7 @@ else if (__VLS_ctx.isArray) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("configNode.arrayHint"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -133,7 +142,7 @@ else {
         ...{ style: (__VLS_ctx.groupStyle) },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
-    (__VLS_ctx.formatLabel(__VLS_ctx.label));
+    (__VLS_ctx.translateLabel(__VLS_ctx.label));
     if (__VLS_ctx.isBoolean) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
             ...{ onChange: (__VLS_ctx.onBooleanChange) },
@@ -142,9 +151,11 @@ else {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
             value: "true",
         });
+        (__VLS_ctx.t("common.enable"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
             value: "false",
         });
+        (__VLS_ctx.t("common.disable"));
     }
     else if (__VLS_ctx.isNumber) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
@@ -171,6 +182,7 @@ var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            t: t,
             level: level,
             isObject: isObject,
             isArray: isArray,
@@ -184,7 +196,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             onBooleanChange: onBooleanChange,
             applyArray: applyArray,
             forwardUpdate: forwardUpdate,
-            formatLabel: formatLabel,
+            translateLabel: translateLabel,
         };
     },
     __typeEmits: {},

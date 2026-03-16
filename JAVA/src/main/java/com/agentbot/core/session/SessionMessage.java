@@ -7,6 +7,8 @@ public class SessionMessage {
   private String content;
   private Instant timestamp;
 
+
+
   public SessionMessage() {}
 
   public SessionMessage(String role, String content, Instant timestamp) {
@@ -15,9 +17,11 @@ public class SessionMessage {
     this.timestamp = timestamp;
   }
 
+
   public String getRole() {
     return role;
   }
+
 
   public void setRole(String role) {
     this.role = role;
@@ -34,6 +38,8 @@ public class SessionMessage {
   public Instant getTimestamp() {
     return timestamp;
   }
+
+
 
   public void setTimestamp(Instant timestamp) {
     this.timestamp = timestamp;

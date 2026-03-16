@@ -1,5 +1,7 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from '../i18n';
+const { t, locale } = useI18n();
 const items = ref([]);
 const loading = ref(false);
 const search = ref('');
@@ -88,17 +90,17 @@ async function ignoreSkill(id) {
 function statusLabel(status) {
     switch (status) {
         case 'available':
-            return '可导入';
+            return t('skillStore.status.available');
         case 'installed':
-            return '已安装';
+            return t('skillStore.status.installed');
         case 'update_available':
-            return '可更新';
+            return t('skillStore.status.update_available');
         case 'conflict':
-            return '冲突';
+            return t('skillStore.status.conflict');
         case 'invalid':
-            return '校验失败';
+            return t('skillStore.status.invalid');
         default:
-            return status || '未知';
+            return status || t('common.unknown');
     }
 }
 function statusPillClass(status) {
@@ -117,7 +119,7 @@ function statusPillClass(status) {
 function formatTime(ts) {
     if (!ts)
         return '-';
-    return new Date(ts).toLocaleString();
+    return new Date(ts).toLocaleString(locale.value);
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -143,15 +145,17 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("skillStore.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
     ...{ class: "subtitle" },
 });
+(__VLS_ctx.t("skillStore.subtitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "header-actions" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     ...{ class: "search" },
-    placeholder: "搜索技能名称或描述",
+    placeholder: (__VLS_ctx.t('skillStore.searchPlaceholder')),
 });
 (__VLS_ctx.search);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
@@ -161,21 +165,27 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElement
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "",
 });
+(__VLS_ctx.t("skillStore.allStatus"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "available",
 });
+(__VLS_ctx.t("skillStore.status.available"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "installed",
 });
+(__VLS_ctx.t("skillStore.status.installed"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "update_available",
 });
+(__VLS_ctx.t("skillStore.status.update_available"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "conflict",
 });
+(__VLS_ctx.t("skillStore.status.conflict"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "invalid",
 });
+(__VLS_ctx.t("skillStore.status.invalid"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.originFilter),
     ...{ class: "select" },
@@ -183,6 +193,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElement
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "",
 });
+(__VLS_ctx.t("skillStore.allOrigins"));
 for (const [origin] of __VLS_getVForSourceType((__VLS_ctx.originOptions))) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
         key: (origin),
@@ -195,6 +206,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "btn" },
     disabled: (__VLS_ctx.loading),
 });
+(__VLS_ctx.t("common.refresh"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "content" },
 });
@@ -204,34 +216,36 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "pill pill-primary" },
 });
-(__VLS_ctx.items.length);
+(__VLS_ctx.t("skillStore.totalCount", { count: __VLS_ctx.items.length }));
 if (__VLS_ctx.availableCount) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "pill pill-success" },
     });
-    (__VLS_ctx.availableCount);
+    (__VLS_ctx.t("skillStore.availableCount", { count: __VLS_ctx.availableCount }));
 }
 if (__VLS_ctx.updateCount) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "pill pill-warning" },
     });
-    (__VLS_ctx.updateCount);
+    (__VLS_ctx.t("skillStore.updateCount", { count: __VLS_ctx.updateCount }));
 }
 if (__VLS_ctx.invalidCount) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "pill pill-warning" },
     });
-    (__VLS_ctx.invalidCount);
+    (__VLS_ctx.t("skillStore.invalidCount", { count: __VLS_ctx.invalidCount }));
 }
 if (__VLS_ctx.loading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted center" },
     });
+    (__VLS_ctx.t("common.loading"));
 }
 else if (!__VLS_ctx.filteredItems.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted center" },
     });
+    (__VLS_ctx.t("skillStore.empty"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -260,18 +274,19 @@ else {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "meta" },
         });
-        (item.origin || 'unknown');
+        (__VLS_ctx.t("skills.sourceLabel", { value: item.origin || __VLS_ctx.t("common.unknown") }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "desc" },
         });
-        (item.description || '暂无描述');
+        (item.description || __VLS_ctx.t("common.noDescription"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "meta-row" },
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-        (item.version || 'unknown');
+        (__VLS_ctx.t("common.version"));
+        (item.version || __VLS_ctx.t("common.unknown"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-        (__VLS_ctx.formatTime(item.updatedAt));
+        (__VLS_ctx.t("skillStore.updatedAt", { time: __VLS_ctx.formatTime(item.updatedAt) }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "actions" },
         });
@@ -286,6 +301,7 @@ else {
             ...{ class: "btn small" },
             disabled: (__VLS_ctx.loading),
         });
+        (__VLS_ctx.t("common.viewDetails"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
                     if (!!(__VLS_ctx.loading))
@@ -297,6 +313,7 @@ else {
             ...{ class: "btn small primary" },
             disabled: (__VLS_ctx.loading || item.status === 'installed'),
         });
+        (__VLS_ctx.t("common.import"));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
                     if (!!(__VLS_ctx.loading))
@@ -308,6 +325,7 @@ else {
             ...{ class: "btn small" },
             disabled: (__VLS_ctx.loading),
         });
+        (__VLS_ctx.t("common.ignore"));
     }
 }
 if (__VLS_ctx.detail) {
@@ -327,20 +345,22 @@ if (__VLS_ctx.detail) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
         ...{ class: "muted" },
     });
-    (__VLS_ctx.detail.skill.description || '暂无描述');
+    (__VLS_ctx.detail.skill.description || __VLS_ctx.t("common.noDescription"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.closeDetail) },
         ...{ class: "btn small" },
     });
+    (__VLS_ctx.t("common.close"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-meta" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-    (__VLS_ctx.detail.skill.version || 'unknown');
+    (__VLS_ctx.t("common.version"));
+    (__VLS_ctx.detail.skill.version || __VLS_ctx.t("common.unknown"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-    (__VLS_ctx.detail.skill.origin || 'unknown');
+    (__VLS_ctx.t("skills.sourceLabel", { value: __VLS_ctx.detail.skill.origin || __VLS_ctx.t("common.unknown") }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-    (__VLS_ctx.statusLabel(__VLS_ctx.detail.skill.status));
+    (__VLS_ctx.t("skills.statusLabel", { value: __VLS_ctx.statusLabel(__VLS_ctx.detail.skill.status) }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-body" },
     });
@@ -350,16 +370,18 @@ if (__VLS_ctx.detail) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-title" },
     });
+    (__VLS_ctx.t("skills.readmeTitle"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.pre, __VLS_intrinsicElements.pre)({
         ...{ class: "detail-content" },
     });
-    (__VLS_ctx.detail.content || '暂无内容');
+    (__VLS_ctx.detail.content || __VLS_ctx.t("common.noContent"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-section" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "detail-title" },
     });
+    (__VLS_ctx.t("skillStore.fileList"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.ul, __VLS_intrinsicElements.ul)({
         ...{ class: "file-list" },
     });
@@ -428,6 +450,7 @@ var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            t: t,
             items: items,
             loading: loading,
             search: search,

@@ -5,11 +5,14 @@ spring:
     import: "optional:file:${AGENTBOT_CONFIG:./config/agentbot.yml}"
 
 server:
+  address: ${server.ip:127.0.0.1}
+  port: ${server.port:8080}
   servlet:
     encoding:
       charset: UTF-8
       enabled: true
       force: true
+
 
 
 

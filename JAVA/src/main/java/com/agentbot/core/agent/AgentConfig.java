@@ -510,13 +510,13 @@ public class AgentConfig {
     private boolean overrideSystem = false;
     
     @JsonProperty("maxToolRounds")
-    private int maxToolRounds = 5;
+    private int maxToolRounds = 30;
     
     @JsonProperty("parallelTools")
     private boolean parallelTools = true;
     
     @JsonProperty("toolParallelism")
-    private int toolParallelism = 4;
+    private int toolParallelism = 3;
     
     public String getProvider() {
       return provider;

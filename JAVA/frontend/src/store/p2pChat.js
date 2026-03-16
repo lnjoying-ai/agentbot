@@ -1,15 +1,22 @@
 import { computed, reactive, ref } from "vue";
 import { getApiBaseUrl } from "./config";
+function generateId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 const sessions = reactive(new Map());
 const currentChatId = ref("");
 const connected = ref(false);
 const error = ref(null);
 const messageIndex = reactive(new Map());
 let eventSource = null;
-function buildChatId(nodeId, agentId) {
-    const safeNode = nodeId && nodeId.trim() ? nodeId.trim() : "-";
-    const safeAgent = agentId && agentId.trim() ? agentId.trim() : "-";
-    return `p2p:${safeNode}:${safeAgent}`;
+function buildChatId(fromAgentId, toNodeId, toAgentId) {
+    const safeFrom = fromAgentId && fromAgentId.trim() ? fromAgentId.trim() : "-";
+    const safeNode = toNodeId && toNodeId.trim() ? toNodeId.trim() : "-";
+    const safeAgent = toAgentId && toAgentId.trim() ? toAgentId.trim() : "-";
+    return `p2p:${safeFrom}:${safeNode}:${safeAgent}`;
 }
 function ensureSession(chatId, payload) {
     let session = sessions.get(chatId);
@@ -47,13 +54,13 @@ function addMessageFromPayload(payload) {
     if (!payload)
         return;
     const direction = payload.direction === "outbound" ? "outbound" : "inbound";
-    const chatId = payload.chatId || buildChatId(payload.fromNodeId, payload.fromAgentId);
+    const chatId = payload.chatId || buildChatId(payload.fromAgentId, payload.toNodeId, payload.toAgentId);
     const session = ensureSession(chatId, {
         title: resolveTitle(payload, direction),
         remoteNodeId: direction === "inbound" ? payload.fromNodeId : payload.toNodeId,
         remoteAgentId: direction === "inbound" ? payload.fromAgentId : payload.toAgentId
     });
-    const msgId = payload.msgId || crypto.randomUUID();
+    const msgId = payload.msgId || generateId();
     const message = {
         id: msgId,
         chatId,
@@ -130,27 +137,17 @@ function disconnect() {
 }
 async function sendMessage(options) {
     const baseUrl = getApiBaseUrl() || window.location.origin;
-    const msgId = crypto.randomUUID();
-    const chatId = buildChatId(options.toNodeId, options.toAgentId);
-    const metadata = {
-        toNodeId: options.toNodeId,
-        toAgentId: options.toAgentId,
-        msgId,
-        ackRequired: true
-    };
-    if (options.agentId) {
-        metadata.agentId = options.agentId;
-        metadata.fromAgentId = options.agentId;
-    }
-    const response = await fetch(`${baseUrl}/api/chat/send`, {
+    const msgId = generateId();
+    const response = await fetch(`${baseUrl}/api/chat/p2psend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            channel: "p2p",
-            senderId: options.agentId || "p2p-ui",
-            chatId,
+            fromAgentId: options.agentId || "p2p-ui",
+            toNodeId: options.toNodeId,
+            toAgentId: options.toAgentId,
             content: options.content,
-            metadata
+            msgId,
+            ackRequired: true
         })
     });
     if (!response.ok) {

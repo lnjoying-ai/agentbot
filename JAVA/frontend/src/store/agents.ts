@@ -70,10 +70,13 @@ export interface Agent {
   name: string;
   description?: string;
   status?: 'active' | 'inactive' | 'error';
+  sessionStatus?: 'working' | 'idle';
+  activeSessions?: number;
   displayName?: string;
   enabled?: boolean;
   healthy?: boolean;
   updatedAt?: string;
+
   capabilities?: {
     skills?: {
       inherited?: boolean;
@@ -119,8 +122,14 @@ const agentSkills = reactive<Map<string, AgentSkillsResponse>>(new Map());
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+const sortAgentsById = (list: Agent[]) =>
+  [...list].sort((a, b) =>
+    (a.id || '').localeCompare(b.id || '', undefined, { numeric: true, sensitivity: 'base' })
+  );
+
 
 export function useAgentStore() {
+
   // Get current agent
   const currentAgent = computed(() => 
     agents.value.find(a => a.id === currentAgentId.value)
@@ -157,10 +166,12 @@ export function useAgentStore() {
       }
       
       const data = await response.json();
-      agents.value = data;
+      const sorted = sortAgentsById(data);
+      agents.value = sorted;
       
       // Initialize conversations for all agents
-      data.forEach((agent: Agent) => {
+      sorted.forEach((agent: Agent) => {
+
         if (!conversations.has(agent.id)) {
           conversations.set(agent.id, {
             agentId: agent.id,
@@ -264,10 +275,11 @@ export function useAgentStore() {
       }
       
       const newAgent = await response.json();
-      agents.value.push(newAgent);
+      agents.value = sortAgentsById([...agents.value, newAgent]);
       
       // Initialize conversation
       conversations.set(newAgent.id, {
+
         agentId: newAgent.id,
         messages: [],
         unreadCount: 0,
@@ -308,8 +320,10 @@ export function useAgentStore() {
       if (index !== -1) {
         agents.value[index] = updatedAgent;
       }
+      agents.value = sortAgentsById(agents.value);
       
       return updatedAgent;
+
       
     } catch (e: any) {
       error.value = e.message;
@@ -334,8 +348,9 @@ export function useAgentStore() {
         throw new Error(`Failed to delete agent: ${response.statusText}`);
       }
       
-      agents.value = agents.value.filter(a => a.id !== agentId);
+      agents.value = sortAgentsById(agents.value.filter(a => a.id !== agentId));
       conversations.delete(agentId);
+
       
       // Switch to default agent if current was deleted
       if (currentAgentId.value === agentId) {
@@ -360,6 +375,19 @@ export function useAgentStore() {
       return Math.abs(incomingTime - msgTime) <= 120000;
     });
   }
+
+  function isNearDuplicate(messages: any[], incoming: any, windowMs = 8000) {
+    if (!incoming || !incoming.content) return false;
+    const incomingTime = Date.parse(incoming.timestamp || '');
+    if (Number.isNaN(incomingTime)) return false;
+    return messages.some((msg: any) => {
+      if (!msg || msg.role !== incoming.role || msg.content !== incoming.content) return false;
+      const msgTime = Date.parse(msg.timestamp || '');
+      if (Number.isNaN(msgTime)) return false;
+      return Math.abs(incomingTime - msgTime) <= windowMs;
+    });
+  }
+
 
   // Add message to conversation
   function addMessage(agentId: string, message: any, options: AddMessageOptions = {}) {
@@ -428,9 +456,11 @@ export function useAgentStore() {
     const toPrepend = messages.filter((msg) => {
       if (msg?.id && existingIds.has(msg.id)) return false;
       if (isLocalUserDuplicate(conv.messages, msg)) return false;
+      if (isNearDuplicate(conv.messages, msg)) return false;
       const key = `${msg.role}|${msg.content}|${msg.timestamp}`;
       return !existingKeys.has(key);
     });
+
     conv.messages = [...toPrepend, ...conv.messages];
   }
 
@@ -451,9 +481,11 @@ export function useAgentStore() {
     const toAppend = messages.filter((msg) => {
       if (msg?.id && existingIds.has(msg.id)) return false;
       if (isLocalUserDuplicate(conv.messages, msg)) return false;
+      if (isNearDuplicate(conv.messages, msg)) return false;
       const key = `${msg.role}|${msg.content}|${msg.timestamp}`;
       return !existingKeys.has(key);
     });
+
     conv.messages = [...conv.messages, ...toAppend];
     conv.lastActivity = new Date().toISOString();
   }

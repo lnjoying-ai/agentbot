@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+"$ROOT/scripts/clean.sh"
 VERSION="$(ROOT="$ROOT" python3 - <<'PY'
 import os
 import xml.etree.ElementTree as ET
@@ -13,9 +14,12 @@ PY
 )"
 JAR="agentbot-${VERSION}.jar"
 
+echo "[agentbot] build artifacts"
+"$ROOT/scripts/build.sh"
+
 if [[ ! -f "$ROOT/target/$JAR" ]]; then
-  echo "Building jar..."
-  mvn -q -DskipTests package -f "$ROOT/pom.xml"
+  echo "[ERROR] Missing jar after build: $ROOT/target/$JAR"
+  exit 1
 fi
 
 STAGE="$ROOT/build/package/input"

@@ -2,37 +2,37 @@
   <section class="skills-view">
     <div class="header">
       <div>
-        <h2 class="section-title">技能商店</h2>
-        <p class="subtitle">展示通过 P2P 交换获得的技能，支持导入与查看详情</p>
+        <h2 class="section-title">{{ t("skillStore.title") }}</h2>
+        <p class="subtitle">{{ t("skillStore.subtitle") }}</p>
       </div>
       <div class="header-actions">
-        <input v-model="search" class="search" placeholder="搜索技能名称或描述" />
+        <input v-model="search" class="search" :placeholder="t('skillStore.searchPlaceholder')" />
         <select v-model="statusFilter" class="select">
-          <option value="">全部状态</option>
-          <option value="available">可导入</option>
-          <option value="installed">已安装</option>
-          <option value="update_available">可更新</option>
-          <option value="conflict">冲突</option>
-          <option value="invalid">校验失败</option>
+          <option value="">{{ t("skillStore.allStatus") }}</option>
+          <option value="available">{{ t("skillStore.status.available") }}</option>
+          <option value="installed">{{ t("skillStore.status.installed") }}</option>
+          <option value="update_available">{{ t("skillStore.status.update_available") }}</option>
+          <option value="conflict">{{ t("skillStore.status.conflict") }}</option>
+          <option value="invalid">{{ t("skillStore.status.invalid") }}</option>
         </select>
         <select v-model="originFilter" class="select">
-          <option value="">全部来源</option>
+          <option value="">{{ t("skillStore.allOrigins") }}</option>
           <option v-for="origin in originOptions" :key="origin" :value="origin">{{ origin }}</option>
         </select>
-        <button class="btn" @click="refresh" :disabled="loading">刷新</button>
+        <button class="btn" @click="refresh" :disabled="loading">{{ t("common.refresh") }}</button>
       </div>
     </div>
 
     <div class="content">
       <div class="summary">
-        <div class="pill pill-primary">共 {{ items.length }} 个技能</div>
-        <div v-if="availableCount" class="pill pill-success">可导入 {{ availableCount }} 个</div>
-        <div v-if="updateCount" class="pill pill-warning">可更新 {{ updateCount }} 个</div>
-        <div v-if="invalidCount" class="pill pill-warning">校验失败 {{ invalidCount }} 个</div>
+        <div class="pill pill-primary">{{ t("skillStore.totalCount", { count: items.length }) }}</div>
+        <div v-if="availableCount" class="pill pill-success">{{ t("skillStore.availableCount", { count: availableCount }) }}</div>
+        <div v-if="updateCount" class="pill pill-warning">{{ t("skillStore.updateCount", { count: updateCount }) }}</div>
+        <div v-if="invalidCount" class="pill pill-warning">{{ t("skillStore.invalidCount", { count: invalidCount }) }}</div>
       </div>
 
-      <div v-if="loading" class="muted center">加载中...</div>
-      <div v-else-if="!filteredItems.length" class="muted center">暂无技能</div>
+      <div v-if="loading" class="muted center">{{ t("common.loading") }}</div>
+      <div v-else-if="!filteredItems.length" class="muted center">{{ t("skillStore.empty") }}</div>
       <div v-else class="grid">
         <div v-for="item in filteredItems" :key="item.id" class="card">
           <div class="card-header">
@@ -40,18 +40,18 @@
               <div class="skill-name">{{ item.name }}</div>
               <span class="pill" :class="statusPillClass(item.status)">{{ statusLabel(item.status) }}</span>
             </div>
-            <div class="meta">来源：{{ item.origin || 'unknown' }}</div>
+            <div class="meta">{{ t("skills.sourceLabel", { value: item.origin || t("common.unknown") }) }}</div>
           </div>
-          <div class="desc">{{ item.description || '暂无描述' }}</div>
+          <div class="desc">{{ item.description || t("common.noDescription") }}</div>
           <div class="meta-row">
-            <span>版本：{{ item.version || 'unknown' }}</span>
-            <span>更新时间：{{ formatTime(item.updatedAt) }}</span>
+            <span>{{ t("common.version") }}：{{ item.version || t("common.unknown") }}</span>
+            <span>{{ t("skillStore.updatedAt", { time: formatTime(item.updatedAt) }) }}</span>
           </div>
 
           <div class="actions">
-            <button class="btn small" @click="openDetail(item.id)" :disabled="loading">查看详情</button>
-            <button class="btn small primary" @click="importSkill(item.id)" :disabled="loading || item.status === 'installed'">导入</button>
-            <button class="btn small" @click="ignoreSkill(item.id)" :disabled="loading">忽略</button>
+            <button class="btn small" @click="openDetail(item.id)" :disabled="loading">{{ t("common.viewDetails") }}</button>
+            <button class="btn small primary" @click="importSkill(item.id)" :disabled="loading || item.status === 'installed'">{{ t("common.import") }}</button>
+            <button class="btn small" @click="ignoreSkill(item.id)" :disabled="loading">{{ t("common.ignore") }}</button>
           </div>
         </div>
       </div>
@@ -62,22 +62,22 @@
         <div class="detail-header">
           <div>
             <h3>{{ detail.skill.name }}</h3>
-            <p class="muted">{{ detail.skill.description || '暂无描述' }}</p>
+            <p class="muted">{{ detail.skill.description || t("common.noDescription") }}</p>
           </div>
-          <button class="btn small" @click="closeDetail">关闭</button>
+          <button class="btn small" @click="closeDetail">{{ t("common.close") }}</button>
         </div>
         <div class="detail-meta">
-          <div>版本：{{ detail.skill.version || 'unknown' }}</div>
-          <div>来源：{{ detail.skill.origin || 'unknown' }}</div>
-          <div>状态：{{ statusLabel(detail.skill.status) }}</div>
+          <div>{{ t("common.version") }}：{{ detail.skill.version || t("common.unknown") }}</div>
+          <div>{{ t("skills.sourceLabel", { value: detail.skill.origin || t("common.unknown") }) }}</div>
+          <div>{{ t("skills.statusLabel", { value: statusLabel(detail.skill.status) }) }}</div>
         </div>
         <div class="detail-body">
           <div class="detail-section">
-            <div class="detail-title">SKILL.md</div>
-            <pre class="detail-content">{{ detail.content || '暂无内容' }}</pre>
+            <div class="detail-title">{{ t("skills.readmeTitle") }}</div>
+            <pre class="detail-content">{{ detail.content || t("common.noContent") }}</pre>
           </div>
           <div class="detail-section">
-            <div class="detail-title">文件列表</div>
+            <div class="detail-title">{{ t("skillStore.fileList") }}</div>
             <ul class="file-list">
               <li v-for="file in detail.files" :key="file">{{ file }}</li>
             </ul>
@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from '../i18n';
 
 interface StoreSkillItem {
   id: string;
@@ -111,6 +112,7 @@ interface StoreSkillDetail {
   files: string[];
 }
 
+const { t, locale } = useI18n();
 const items = ref<StoreSkillItem[]>([]);
 const loading = ref(false);
 const search = ref('');
@@ -197,17 +199,17 @@ async function ignoreSkill(id: string) {
 function statusLabel(status: string) {
   switch (status) {
     case 'available':
-      return '可导入';
+      return t('skillStore.status.available');
     case 'installed':
-      return '已安装';
+      return t('skillStore.status.installed');
     case 'update_available':
-      return '可更新';
+      return t('skillStore.status.update_available');
     case 'conflict':
-      return '冲突';
+      return t('skillStore.status.conflict');
     case 'invalid':
-      return '校验失败';
+      return t('skillStore.status.invalid');
     default:
-      return status || '未知';
+      return status || t('common.unknown');
   }
 }
 
@@ -222,9 +224,10 @@ function statusPillClass(status: string) {
 
 function formatTime(ts: number) {
   if (!ts) return '-';
-  return new Date(ts).toLocaleString();
+  return new Date(ts).toLocaleString(locale.value);
 }
 </script>
+
 
 <style scoped>
 .skills-view {

@@ -1,6 +1,7 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, onMounted, watch, ref, nextTick, onBeforeUnmount, reactive } from 'vue';
 import ChatMessage from "../components/ChatMessage.vue";
+import { useI18n } from "../i18n";
 import ChatComposer from "../components/ChatComposer.vue";
 import AgentSelector from "../components/AgentSelector.vue";
 import AgentInfoPanel from "../components/AgentInfoPanel.vue";
@@ -10,6 +11,7 @@ import { useConfigStore } from "../store/config";
 const agentStore = useAgentStore();
 const chat = useChatStore();
 const config = useConfigStore();
+const { t } = useI18n();
 const chatStreamRef = ref(null);
 const isAtBottom = ref(true);
 const pageSize = 10;
@@ -58,7 +60,7 @@ watch(currentMessages, () => {
 });
 const currentAgentName = computed(() => {
     const agent = agentStore.currentAgent.value;
-    return agent?.displayName || agent?.name || agent?.id || '未选择';
+    return agent?.displayName || agent?.name || agent?.id || t("chat.noAgentSelected");
 });
 const currentAgentStatus = computed(() => {
     const agent = agentStore.currentAgent.value;
@@ -250,7 +252,7 @@ watch(agentStore.agents, () => {
 async function sendMessage(text) {
     const agentId = agentStore.currentAgentId.value;
     if (!agentId) {
-        alert('请先选择一个 Agent');
+        alert(t("chat.selectAgentFirst"));
         return;
     }
     const userMessage = {
@@ -278,13 +280,13 @@ async function sendMessage(text) {
         agentStore.addMessage(agentId, {
             id: Date.now().toString(),
             role: 'assistant',
-            content: '抱歉，由于网络或后端服务异常，我暂时无法处理您的请求。',
+            content: t("chat.sendFailed"),
             timestamp: new Date().toISOString()
         }, { suppressUnread: true });
     }
 }
 function clearChat() {
-    if (confirm('确定要清空当前对话吗？')) {
+    if (confirm(t("chat.confirmClear"))) {
         const conv = agentStore.conversations.get(agentStore.currentAgentId.value);
         if (conv) {
             conv.messages = [];
@@ -342,6 +344,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElemen
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("chat.title.multiAgent"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "chat-container" },
 });
@@ -387,8 +390,8 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ onClick: (__VLS_ctx.handleLoadHistory) },
     ...{ class: "btn-icon" },
     disabled: (!__VLS_ctx.agentStore.currentAgentId.value || __VLS_ctx.currentHistoryLoading),
-    title: "加载历史",
-    'aria-label': "加载历史",
+    title: (__VLS_ctx.t('chat.loadHistory')),
+    'aria-label': (__VLS_ctx.t('chat.loadHistory')),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.svg, __VLS_intrinsicElements.svg)({
     width: "16",
@@ -420,8 +423,8 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.clearChat) },
     ...{ class: "btn-icon" },
-    title: "清空对话",
-    'aria-label': "清空对话",
+    title: (__VLS_ctx.t('chat.clearChat')),
+    'aria-label': (__VLS_ctx.t('chat.clearChat')),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.svg, __VLS_intrinsicElements.svg)({
     width: "16",
@@ -460,11 +463,13 @@ if (__VLS_ctx.currentHistoryLoading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "history-loading" },
     });
+    (__VLS_ctx.t("chat.loadingHistory"));
 }
 else if (!__VLS_ctx.currentHistoryHasMore && __VLS_ctx.currentMessages.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "history-end" },
     });
+    (__VLS_ctx.t("chat.historyEnd"));
 }
 for (const [msg] of __VLS_getVForSourceType((__VLS_ctx.currentMessages))) {
     /** @type {[typeof ChatMessage, ]} */ ;
@@ -483,7 +488,7 @@ if (__VLS_ctx.currentMessages.length === 0) {
         ...{ class: "empty-chat" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
-    (__VLS_ctx.agentStore.currentAgent.value?.name || 'Agent');
+    (__VLS_ctx.t("chat.startWith", { name: __VLS_ctx.agentStore.currentAgent.value?.name || __VLS_ctx.t("chat.role.assistant") }));
 }
 /** @type {[typeof ChatComposer, ]} */ ;
 // @ts-ignore
@@ -533,6 +538,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             AgentSelector: AgentSelector,
             AgentInfoPanel: AgentInfoPanel,
             agentStore: agentStore,
+            t: t,
             chatStreamRef: chatStreamRef,
             currentHistoryLoading: currentHistoryLoading,
             currentHistoryHasMore: currentHistoryHasMore,

@@ -1,7 +1,9 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from '../i18n';
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const selectedId = ref(null);
 const saving = ref(false);
 const skillsLoading = ref(false);
@@ -80,7 +82,7 @@ const toolsCustomText = computed({
     }
 });
 const selectedAgent = computed(() => agentStore.getAgent(selectedId.value || ''));
-const selectedAgentName = computed(() => selectedAgent.value?.displayName || selectedAgent.value?.name || selectedAgent.value?.id || '未选择');
+const selectedAgentName = computed(() => selectedAgent.value?.displayName || selectedAgent.value?.name || selectedAgent.value?.id || t('common.notSelected'));
 const statusClass = computed(() => {
     if (!selectedAgent.value)
         return 'inactive';
@@ -92,12 +94,12 @@ const statusClass = computed(() => {
 });
 const statusText = computed(() => {
     if (!selectedAgent.value)
-        return '未选择';
+        return t('common.notSelected');
     if (selectedAgent.value.enabled === false)
-        return '已禁用';
+        return t('agent.status.disabled');
     if (selectedAgent.value.healthy === false)
-        return '异常';
-    return '正常';
+        return t('agent.status.error');
+    return t('agent.status.ok');
 });
 const skillsData = computed(() => {
     if (!selectedId.value)
@@ -195,7 +197,7 @@ async function selectAgent(agentId) {
     selectedId.value = agentId;
     const response = await fetch(`/api/agents/${agentId}/config`);
     if (!response.ok) {
-        alert(`加载 Agent 配置失败: ${response.statusText}`);
+        alert(t('agent.manage.loadFailed', { message: response.statusText }));
         return;
     }
     const config = await response.json();
@@ -204,7 +206,7 @@ async function selectAgent(agentId) {
 }
 async function save() {
     if (!draft.id || !draft.name) {
-        alert('Agent ID 和名称为必填项');
+        alert(t('agent.manage.validationRequired'));
         return;
     }
     saving.value = true;
@@ -229,7 +231,7 @@ async function save() {
 async function remove() {
     if (!selectedId.value)
         return;
-    if (!confirm(`确定删除 Agent ${selectedId.value}？`))
+    if (!confirm(t('agent.manage.deleteConfirm', { id: selectedId.value })))
         return;
     saving.value = true;
     try {
@@ -248,7 +250,7 @@ function canInstall(skill) {
 }
 function installLabel(skill) {
     const option = skill?.install?.[0];
-    return option?.label || '安装';
+    return option?.label || t('common.install');
 }
 function missingText(skill) {
     const missing = skill?.missing;
@@ -319,7 +321,7 @@ async function onSaveSkill(name) {
             patch.env = JSON.parse(envText);
         }
         catch (e) {
-            alert('环境变量需要合法的 JSON 格式');
+            alert(t('skills.envInvalid'));
             savingSkill.value = null;
             return;
         }
@@ -369,6 +371,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElemen
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
     ...{ class: "section-title" },
 });
+(__VLS_ctx.t("agent.manage.title"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
     ...{ style: {} },
@@ -383,11 +386,13 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ onClick: (__VLS_ctx.newAgent) },
     ...{ class: "button" },
 });
+(__VLS_ctx.t("agent.manage.new"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.refresh) },
     ...{ class: "button secondary" },
     disabled: (__VLS_ctx.agentStore.loading.value),
 });
+(__VLS_ctx.t("agent.manage.refreshList"));
 if (__VLS_ctx.agentStore.error.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "toolbar-status" },
@@ -404,17 +409,19 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "list-header" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("agent.listTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "search-box" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "搜索 Agent",
+    placeholder: (__VLS_ctx.t('agent.searchPlaceholder')),
 });
 (__VLS_ctx.searchTerm);
 if (__VLS_ctx.agentStore.loading.value) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("common.loading"));
 }
 else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -440,16 +447,19 @@ else {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
                 ...{ class: "pill" },
             });
+            (__VLS_ctx.t("agent.status.disabled"));
         }
         else if (agent.healthy === false) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
                 ...{ class: "pill warning" },
             });
+            (__VLS_ctx.t("agent.status.error"));
         }
         else {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
                 ...{ class: "pill" },
             });
+            (__VLS_ctx.t("agent.status.ok"));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "agent-meta" },
@@ -458,20 +468,21 @@ else {
         (agent.id);
         if (agent.updatedAt) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-            (agent.updatedAt);
+            (__VLS_ctx.t("agent.updatedAt", { time: agent.updatedAt }));
         }
     }
     if (!__VLS_ctx.filteredAgents.length) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "muted" },
         });
+        (__VLS_ctx.t("agent.manage.empty"));
     }
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card form-panel" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
-(__VLS_ctx.isEditing ? '编辑 Agent' : '创建 Agent');
+(__VLS_ctx.isEditing ? __VLS_ctx.t("agent.manage.editTitle") : __VLS_ctx.t("agent.manage.createTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-grid" },
 });
@@ -479,31 +490,35 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.dialog.id"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     disabled: (__VLS_ctx.isEditing),
-    placeholder: "例如: planner",
+    placeholder: "planner",
 });
 (__VLS_ctx.draft.id);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.dialog.name"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "例如: Planner",
+    placeholder: "Planner",
 });
 (__VLS_ctx.draft.name);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.displayName"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "用于界面显示",
+    placeholder: (__VLS_ctx.t('agent.manage.displayNamePlaceholder')),
 });
 (__VLS_ctx.draft.displayName);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.avatarUrl"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "https://...",
 });
@@ -512,29 +527,34 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.enabledState"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.draft.enabled),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (true),
 });
+(__VLS_ctx.t("common.enable"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (false),
 });
+(__VLS_ctx.t("common.disable"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.dialog.description"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea, __VLS_intrinsicElements.textarea)({
     value: (__VLS_ctx.draft.description),
     rows: "3",
-    placeholder: "简要说明该 Agent 的职责",
+    placeholder: (__VLS_ctx.t('agent.manage.descriptionPlaceholder')),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("agent.manage.routingTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-grid" },
 });
@@ -542,22 +562,25 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.keywords"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "搜索,总结,计划",
+    placeholder: (__VLS_ctx.t('agent.manage.keywordsPlaceholder')),
 });
 (__VLS_ctx.keywordsText);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.channels"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "web,telegram",
+    placeholder: (__VLS_ctx.t('agent.manage.channelsPlaceholder')),
 });
 (__VLS_ctx.channelsText);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.priority"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     type: "number",
     min: "0",
@@ -567,20 +590,24 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.autoRoute"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.draft.routing.autoRoute),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (true),
 });
+(__VLS_ctx.t("common.enable"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (false),
 });
+(__VLS_ctx.t("common.disable"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "card" },
     ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("agent.manage.capabilitiesTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-grid" },
 });
@@ -588,6 +615,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.inheritedTools"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "echo,time_now",
 });
@@ -596,6 +624,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.disabledTools"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "shell",
 });
@@ -604,6 +633,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.customTools"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "custom_tool",
 });
@@ -618,6 +648,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "label" },
 });
+(__VLS_ctx.t("agent.manage.currentAgent"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "title" },
 });
@@ -634,21 +665,25 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.inheritSystemSkills"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
     value: (__VLS_ctx.skillInherited),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (true),
 });
+(__VLS_ctx.t("agent.manage.inherit"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: (false),
 });
+(__VLS_ctx.t("agent.manage.noInherit"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "form-field" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+(__VLS_ctx.t("agent.manage.customSkillPath"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "例如 skills/",
+    placeholder: "skills/",
 });
 (__VLS_ctx.skillCustomPath);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -660,6 +695,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "button" },
     disabled: (__VLS_ctx.skillsLoading || !__VLS_ctx.selectedId),
 });
+(__VLS_ctx.t("agent.manage.saveSkillSettings"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "skills-list-card" },
 });
@@ -669,15 +705,18 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "title" },
 });
+(__VLS_ctx.t("agent.manage.skillList"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.refreshSkills) },
     ...{ class: "button secondary" },
     disabled: (__VLS_ctx.skillsLoading || !__VLS_ctx.selectedId),
 });
+(__VLS_ctx.t("common.reload"));
 if (__VLS_ctx.skillsLoading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("common.loading"));
 }
 else if (__VLS_ctx.skillsData?.available?.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -689,14 +728,14 @@ else if (__VLS_ctx.skillsData?.available?.length) {
         });
         if (__VLS_ctx.blockedCount) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-            (__VLS_ctx.blockedCount);
+            (__VLS_ctx.t("skills.blockedCount", { count: __VLS_ctx.blockedCount }));
         }
         if (__VLS_ctx.blockedCount && __VLS_ctx.installableCount) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
         }
         if (__VLS_ctx.installableCount) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-            (__VLS_ctx.installableCount);
+            (__VLS_ctx.t("skills.installableCount", { count: __VLS_ctx.installableCount }));
         }
     }
     for (const [skill] of __VLS_getVForSourceType((__VLS_ctx.skillsData.available))) {
@@ -715,21 +754,22 @@ else if (__VLS_ctx.skillsData?.available?.length) {
             ...{ class: "pill" },
             ...{ class: (skill.blocked ? 'pill-warning' : 'pill-success') },
         });
-        (skill.blocked ? '阻塞' : '可用');
+        (skill.blocked ? __VLS_ctx.t("common.blocked") : __VLS_ctx.t("common.available"));
         if (__VLS_ctx.canInstall(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
                 ...{ class: "pill pill-warning" },
             });
+            (__VLS_ctx.t("common.installable"));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "skill-desc" },
         });
-        (skill.description || '暂无描述');
+        (skill.description || __VLS_ctx.t("common.noDescription"));
         if (__VLS_ctx.missingText(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
                 ...{ class: "skill-missing" },
             });
-            (__VLS_ctx.missingText(skill));
+            (__VLS_ctx.t("skills.missing", { value: __VLS_ctx.missingText(skill) }));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "skill-actions" },
@@ -752,6 +792,7 @@ else if (__VLS_ctx.skillsData?.available?.length) {
             checked: (__VLS_ctx.isSkillEnabled(skill.name)),
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+        (__VLS_ctx.t("skills.enable"));
         if (__VLS_ctx.canInstall(skill)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
                 ...{ onClick: (...[$event]) => {
@@ -776,7 +817,7 @@ else if (__VLS_ctx.skillsData?.available?.length) {
                 ...{ onInput: (e => __VLS_ctx.onEditSkillApiKey(skill.name, e.target.value)) },
                 type: "password",
                 value: (__VLS_ctx.skillApiKeyDraft[skill.name] || ''),
-                placeholder: (`API Key (${skill.primaryEnv})`),
+                placeholder: (__VLS_ctx.t('skills.apiKeyPlaceholder', { env: skill.primaryEnv })),
             });
             __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
                 ...{ onClick: (...[$event]) => {
@@ -791,6 +832,7 @@ else if (__VLS_ctx.skillsData?.available?.length) {
                 ...{ class: "button small" },
                 disabled: (__VLS_ctx.skillsLoading || __VLS_ctx.savingSkill === skill.name),
             });
+            (__VLS_ctx.t("common.save"));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "field" },
@@ -799,7 +841,7 @@ else if (__VLS_ctx.skillsData?.available?.length) {
             ...{ onInput: (e => __VLS_ctx.onEditSkillEnv(skill.name, e.target.value)) },
             ...{ class: "env" },
             value: (__VLS_ctx.skillEnvDraft[skill.name] || ''),
-            placeholder: '可选：环境变量 JSON，如 {"BASE_URL":"https://api"}',
+            placeholder: (__VLS_ctx.t('skills.envPlaceholder')),
             rows: "3",
         });
     }
@@ -808,6 +850,7 @@ else {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
     });
+    (__VLS_ctx.t("skills.notFoundFiles"));
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "config-actions" },
@@ -817,12 +860,13 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "button" },
     disabled: (__VLS_ctx.saving),
 });
-(__VLS_ctx.isEditing ? '保存修改' : '创建 Agent');
+(__VLS_ctx.isEditing ? __VLS_ctx.t("agent.manage.saveChanges") : __VLS_ctx.t("agent.manage.createTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.reset) },
     ...{ class: "button secondary" },
     disabled: (__VLS_ctx.saving),
 });
+(__VLS_ctx.t("common.reset"));
 if (__VLS_ctx.isEditing) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.remove) },
@@ -830,6 +874,7 @@ if (__VLS_ctx.isEditing) {
         ...{ style: {} },
         disabled: (__VLS_ctx.saving),
     });
+    (__VLS_ctx.t("agent.manage.delete"));
 }
 /** @type {__VLS_StyleScopedClasses['agent-manage']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
@@ -923,6 +968,7 @@ const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
             agentStore: agentStore,
+            t: t,
             selectedId: selectedId,
             saving: saving,
             skillsLoading: skillsLoading,

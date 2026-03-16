@@ -2,47 +2,63 @@
   <div class="p2p-message" :class="message.direction">
     <div class="message-meta">
       <span>{{ headerLabel }}</span>
-      <span>{{ message.timestamp }}</span>
+      <span>{{ formattedTimestamp }}</span>
       <span v-if="message.status" class="status" :class="message.status.toLowerCase()">
         {{ statusLabel }}
       </span>
     </div>
+
     <div class="message-content">
       {{ message.content }}
     </div>
     <div v-if="message.reason" class="message-reason">
-      失败原因：{{ message.reason }}
+      {{ t("p2p.failReason", { reason: message.reason }) }}
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import type { P2pChatMessage } from "../types";
+import { useI18n } from "../i18n";
 
 const props = defineProps<{ message: P2pChatMessage }>();
+const { t } = useI18n();
 
 const headerLabel = computed(() => {
   if (props.message.direction === "outbound") {
-    return `本地 → ${props.message.toNodeId || ""}${props.message.toAgentId ? "/" + props.message.toAgentId : ""}`;
+    const target = `${props.message.toNodeId || ""}${props.message.toAgentId ? "/" + props.message.toAgentId : ""}`.trim();
+    return t("p2p.header.localTo", { target });
   }
-  return `${props.message.fromNodeId || "外部"}${props.message.fromAgentId ? "/" + props.message.fromAgentId : ""} → 本地`;
+  const source = `${props.message.fromNodeId || t("p2p.source.external")}${props.message.fromAgentId ? "/" + props.message.fromAgentId : ""}`.trim();
+  return t("p2p.header.remoteToLocal", { source });
 });
 
 const statusLabel = computed(() => {
   switch (props.message.status) {
     case "ACKED":
-      return "已送达";
+      return t("p2p.status.acked");
     case "NACKED":
-      return "失败";
+      return t("p2p.status.nacked");
     case "FAILED":
-      return "发送失败";
+      return t("p2p.status.failed");
     case "RECEIVED":
-      return "已接收";
+      return t("p2p.status.received");
     default:
-      return "已发送";
+      return t("p2p.status.sent");
   }
 });
+
+
+const formattedTimestamp = computed(() => {
+  const raw = props.message.timestamp;
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleString();
+});
+
 </script>
 
 <style scoped>

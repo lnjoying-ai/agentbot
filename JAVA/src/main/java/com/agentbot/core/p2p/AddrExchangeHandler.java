@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
-
 public class AddrExchangeHandler implements ProtocolHandler {
   private static final Logger log = LoggerFactory.getLogger(AddrExchangeHandler.class);
 
@@ -41,8 +40,6 @@ public class AddrExchangeHandler implements ProtocolHandler {
     if (type == MessageType.ADDR) {
       handleAddr(connection, payload instanceof AddrMessage ? (AddrMessage) payload : null);
     }
-
-
   }
 
 
@@ -121,7 +118,6 @@ public class AddrExchangeHandler implements ProtocolHandler {
         continue;
       }
 
-
       int port = listenPort;
 
       if (parts.length == 2) {
@@ -152,7 +148,6 @@ public class AddrExchangeHandler implements ProtocolHandler {
       connection.recordAddrResponse(total, accepted, invalid);
     }
   }
-
 
 
 }

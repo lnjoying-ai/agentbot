@@ -1,7 +1,9 @@
 /// <reference types="../../node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts" />
 import { ref, computed } from 'vue';
 import { useAgentStore } from '../store/agents';
+import { useI18n } from "../i18n";
 const agentStore = useAgentStore();
+const { t } = useI18n();
 const emit = defineEmits();
 const showCreateDialog = ref(false);
 const creating = ref(false);
@@ -43,12 +45,12 @@ function getStatusClass(agent) {
 }
 function getStatusText(agent) {
     if (!agent)
-        return '未知';
+        return t("agent.status.unknown");
     if (agent.enabled === false)
-        return '已禁用';
+        return t("agent.status.disabled");
     if (agent.healthy === false)
-        return '异常';
-    return '正常';
+        return t("agent.status.error");
+    return t("agent.status.ok");
 }
 function formatUpdatedAt(value) {
     const date = new Date(value);
@@ -77,7 +79,7 @@ async function createAgent() {
     }
     catch (e) {
         console.error('Failed to create agent:', e);
-        alert('创建 Agent 失败: ' + e.message);
+        alert(t("agent.dialog.createFailed", { message: e.message }));
     }
     finally {
         creating.value = false;
@@ -122,19 +124,20 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
     ...{ class: "selector-header" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+(__VLS_ctx.t("agent.listTitle"));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (...[$event]) => {
             __VLS_ctx.showCreateDialog = true;
         } },
     ...{ class: "btn-icon" },
-    title: "创建新 Agent",
+    title: (__VLS_ctx.t('agent.create')),
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "search-box" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "搜索会话或 Agent",
+    placeholder: (__VLS_ctx.t('agent.searchPlaceholder')),
 });
 (__VLS_ctx.searchTerm);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -179,7 +182,7 @@ for (const [agent] of __VLS_getVForSourceType((__VLS_ctx.filteredAgents))) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ class: "meta-item" },
         });
-        (__VLS_ctx.formatUpdatedAt(agent.updatedAt));
+        (__VLS_ctx.t("agent.updatedAt", { time: __VLS_ctx.formatUpdatedAt(agent.updatedAt) }));
     }
     if (__VLS_ctx.getUnreadCount(agent.id) > 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -204,6 +207,7 @@ if (__VLS_ctx.showCreateDialog) {
         ...{ class: "modal-header" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+    (__VLS_ctx.t("agent.dialog.title"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(__VLS_ctx.showCreateDialog))
@@ -222,33 +226,37 @@ if (__VLS_ctx.showCreateDialog) {
         ...{ class: "form-group" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("agent.dialog.id"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         required: true,
-        placeholder: "例: code-reviewer",
+        placeholder: (__VLS_ctx.t('agent.dialog.idPlaceholder')),
     });
     (__VLS_ctx.newAgent.id);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "form-group" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("agent.dialog.name"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         required: true,
-        placeholder: "例: 代码审查助手",
+        placeholder: (__VLS_ctx.t('agent.dialog.namePlaceholder')),
     });
     (__VLS_ctx.newAgent.name);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "form-group" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("agent.dialog.description"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea, __VLS_intrinsicElements.textarea)({
         value: (__VLS_ctx.newAgent.description),
         rows: "3",
-        placeholder: "描述此 Agent 的功能",
+        placeholder: (__VLS_ctx.t('agent.dialog.descriptionPlaceholder')),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "form-group" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({});
+    (__VLS_ctx.t("agent.dialog.priority"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
         type: "number",
         min: "0",
@@ -267,12 +275,13 @@ if (__VLS_ctx.showCreateDialog) {
         type: "button",
         ...{ class: "btn-secondary" },
     });
+    (__VLS_ctx.t("agent.dialog.cancel"));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         type: "submit",
         ...{ class: "btn-primary" },
         disabled: (__VLS_ctx.creating),
     });
-    (__VLS_ctx.creating ? '创建中...' : '创建');
+    (__VLS_ctx.creating ? __VLS_ctx.t('agent.dialog.creating') : __VLS_ctx.t('agent.dialog.create'));
 }
 /** @type {__VLS_StyleScopedClasses['agent-selector']} */ ;
 /** @type {__VLS_StyleScopedClasses['selector-header']} */ ;
@@ -304,6 +313,7 @@ const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
             agentStore: agentStore,
+            t: t,
             showCreateDialog: showCreateDialog,
             creating: creating,
             searchTerm: searchTerm,

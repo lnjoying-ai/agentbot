@@ -1,9 +1,14 @@
+---
+server:
+  ip: 127.0.0.1
+  port: 8080
+
 agentbot:
   heartbeatFile: "HEARTBEAT.md"
 
   channels:
     feishu:
-      enabled: true
+      enabled: false
       appId: ""
       appSecret: ""
       verificationToken: ""
@@ -181,11 +186,19 @@ agentbot:
     chatStreamBufferSize: 50
     chatMode: "qa"
 
+  security:
+    auth:
+      enabled: false
+      username: "lnjoying"
+      password: "Ilovelnjoying2045!"
 
   search:
+
     type: "bocha"
     braveApiKey: ""
     bochaApiKey: ""
+    apimeshKey: ""
+
   approvals:
     tools:
       security: "full"     # deny | allowlist | full
@@ -285,12 +298,19 @@ agentbot:
     idempotentWindow: 10000
     
   llm:
-    provider: "kimi"
+    provider: "apimesh"
     temperature: 1
     fallbackOrder: "kimi,glm,minimax,qwen"
     maxToolRounds: 30
     parallelTools: true
     toolParallelism: 3
+    logHttpRequest: false
+    logHttpResponse: true
+    apimesh:
+      apiKey: ""
+      baseUrl: "https://api.apimesh.io/v1/chat/completions"
+      model: "kimi-k2.5"
+
     kimi:
       apiKey: ""
       baseUrl: "https://api.moonshot.cn/v1/chat/completions"
@@ -306,11 +326,7 @@ agentbot:
     qwen:
       apiKey: ""
       baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-      model: "qwen-turbo"
-    apimesh:
-      apiKey: ""
-      baseUrl: ""
-      model: "kimi-k2.5"
+      model: "qwen-max"
     openrouter:
       apiKey: ""
       baseUrl: "https://openrouter.ai/api/v1"
@@ -320,9 +336,6 @@ agentbot:
       baseUrl: ""
       model: "gpt-5.2"
       
-server:
-  port: 8080
-
 logging:
   charset:
     console: UTF-8

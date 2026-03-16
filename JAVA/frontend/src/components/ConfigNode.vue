@@ -1,6 +1,6 @@
 <template>
   <div v-if="isObject" class="config-group" :style="groupStyle">
-    <div class="group-title">{{ formatLabel(label) }}</div>
+    <div class="group-title">{{ translateLabel(label) }}</div>
     <div class="group-body">
       <ConfigNode
         v-for="(childValue, childKey) in value"
@@ -15,16 +15,16 @@
   </div>
 
   <div v-else-if="isArray" class="form-field" :style="groupStyle">
-    <label>{{ formatLabel(label) }}</label>
+    <label>{{ translateLabel(label) }}</label>
     <textarea v-model="arrayText" rows="4" @blur="applyArray"></textarea>
-    <div class="muted">数组请使用 JSON 格式编辑，例如：["a", "b"]</div>
+    <div class="muted">{{ t("configNode.arrayHint") }}</div>
   </div>
 
   <div v-else class="form-field" :style="groupStyle">
-    <label>{{ formatLabel(label) }}</label>
+    <label>{{ translateLabel(label) }}</label>
     <select v-if="isBoolean" :value="String(value)" @change="onBooleanChange">
-      <option value="true">启用</option>
-      <option value="false">禁用</option>
+      <option value="true">{{ t("common.enable") }}</option>
+      <option value="false">{{ t("common.disable") }}</option>
     </select>
     <input
       v-else-if="isNumber"
@@ -43,11 +43,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "../i18n";
 
 defineOptions({ name: "ConfigNode" });
 
 const props = defineProps<{ label: string; value: any; path: string[]; level?: number }>();
 const emit = defineEmits<{ (event: "update", path: string[], value: any): void }>();
+const { t } = useI18n();
 
 const level = computed(() => props.level ?? 0);
 const isObject = computed(() => props.value !== null && typeof props.value === "object" && !Array.isArray(props.value));
@@ -113,6 +115,13 @@ const formatLabel = (raw: string) => {
     .trim();
 };
 
+const translateLabel = (raw: string) => {
+  const normalized = raw.replace(/[\s_-]/g, "").toLowerCase();
+  const key = `config.label.${normalized}`;
+  const translated = t(key);
+  return translated === key ? formatLabel(raw) : translated;
+};
+
 const isSecretKey = (raw: string) => {
   const lower = raw.toLowerCase();
   return (
@@ -123,6 +132,7 @@ const isSecretKey = (raw: string) => {
   );
 };
 </script>
+
 
 <style scoped>
 .group-title {

@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 
 
-
 @Component
 public class P2pService implements ApplicationRunner {
   private static final Logger log = LoggerFactory.getLogger(P2pService.class);
@@ -64,7 +63,6 @@ public class P2pService implements ApplicationRunner {
   private P2pServer server;
 
 
-
   public P2pService(AgentbotProperties properties, ApplicationArguments args, ExternalMessageBus messageBus, AgentRegistry agentRegistry, SystemEventBus eventBus, SkillStoreService skillStoreService) {
     this.properties = properties;
     this.args = args;
@@ -75,64 +73,99 @@ public class P2pService implements ApplicationRunner {
   }
 
 
-
   @Override
   public void run(ApplicationArguments arguments) {
     AgentbotProperties.P2p p2p = properties.getP2p();
-    if (!p2p.isEnabled()) return;
+    if (!isP2pEnabled(p2p)) return;
 
     int port = p2p.getPort();
-    if (port <= 0 || port > 65535) {
+    if (!isValidPort(port)) {
       log.error("P2P disabled due to invalid port: {}", port);
       return;
     }
 
     Path configDir = resolveConfigDir();
-
-    Path peersFile = configDir.resolve(p2p.getPeersFile());
-    PeerAddressBook addressBook = new PeerAddressBook(new YAMLMapper(), peersFile);
-
+    PeerAddressBook addressBook = buildAddressBook(configDir, p2p);
     NodeIdentity identity = resolveLocalIdentity(configDir);
     P2pSettings settings = P2pSettingsFactory.fromProperties(p2p, identity);
-
-    MessageCodecRegistry codecRegistry = P2pSettingsFactory.defaultCodecRegistry();
-    ProtocolCodec protocolCodec = new ProtocolCodec(codecRegistry);
-
-    AddrExchangeHandler addrService = new AddrExchangeHandler(addressBook, p2p.getGetaddrLimit(), port);
-
+    ProtocolCodec protocolCodec = buildProtocolCodec();
+    AddrExchangeHandler addrService = buildAddrExchangeHandler(addressBook, p2p, port);
     long getaddrBackoffMaxMs = TimeUnit.SECONDS.toMillis(Math.max(0, p2p.getGetaddrBackoffMaxSeconds()));
-
-    ProtocolDispatcher dispatcher = new ProtocolDispatcher();
-    dispatcher.register(MessageType.GETADDR, addrService);
-    dispatcher.register(MessageType.ADDR, addrService);
 
     InvStore invStore = new InvStore();
     RetryManager retryManager = new RetryManager(3);
     SkillExchangeService skillExchangeService = new SkillExchangeService(p2p, settings, skillStoreService);
     DataExchangeHandler dataHandler = new DataExchangeHandler(invStore, retryManager, settings, skillExchangeService);
     MeshProtocolHandler meshHandler = new MeshProtocolHandler(retryManager);
+
+    P2pChatHandler chatHandler = new P2pChatHandler(settings, registry, messageBus, agentRegistry, eventBus);
+    ProtocolDispatcher dispatcher = buildDispatcher(addrService, dataHandler, meshHandler, chatHandler);
+
+    PeerDiscoveryManager discovery = buildDiscovery(addressBook, addrService, protocolCodec, dispatcher, settings, port, getaddrBackoffMaxMs);
+    configureDiscovery(discovery, port, p2p);
+
+    server = createServer(port, protocolCodec, settings, addrService, dispatcher, getaddrBackoffMaxMs);
+    server.start();
+
+    schedulePersistence(p2p, addressBook);
+    scheduleConnectionRotation(p2p, discovery);
+    scheduleGetaddr(p2p);
+    scheduleSkillInv(p2p, skillExchangeService);
+  }
+
+
+  private boolean isP2pEnabled(AgentbotProperties.P2p p2p) {
+    return p2p != null && p2p.isEnabled();
+  }
+
+  private boolean isValidPort(int port) {
+    return port > 0 && port <= 65535;
+  }
+
+  private PeerAddressBook buildAddressBook(Path configDir, AgentbotProperties.P2p p2p) {
+    Path peersFile = configDir.resolve(p2p.getPeersFile());
+    return new PeerAddressBook(new YAMLMapper(), peersFile);
+  }
+
+  private ProtocolCodec buildProtocolCodec() {
+    MessageCodecRegistry codecRegistry = P2pSettingsFactory.defaultCodecRegistry();
+    return new ProtocolCodec(codecRegistry);
+  }
+
+  private AddrExchangeHandler buildAddrExchangeHandler(PeerAddressBook addressBook, AgentbotProperties.P2p p2p, int port) {
+    return new AddrExchangeHandler(addressBook, p2p.getGetaddrLimit(), port);
+  }
+
+  private ProtocolDispatcher buildDispatcher(AddrExchangeHandler addrService, DataExchangeHandler dataHandler, MeshProtocolHandler meshHandler, P2pChatHandler chatHandler) {
+    ProtocolDispatcher dispatcher = new ProtocolDispatcher();
+    dispatcher.register(MessageType.GETADDR, addrService);
+    dispatcher.register(MessageType.ADDR, addrService);
     dispatcher.register(MessageType.INV, dataHandler);
     dispatcher.register(MessageType.GETDATA, dataHandler);
     dispatcher.register(MessageType.DATA, dataHandler);
     dispatcher.register(MessageType.ACK, meshHandler);
     dispatcher.register(MessageType.NACK, meshHandler);
 
-    P2pChatHandler chatHandler = new P2pChatHandler(settings, registry, messageBus, agentRegistry, eventBus);
-
     chatHandler.start();
     dispatcher.register(MessageType.AGENT_CHAT, chatHandler);
     dispatcher.register(MessageType.AGENT_CHAT_ACK, chatHandler);
     dispatcher.register(MessageType.AGENT_CHAT_NACK, chatHandler);
+    return dispatcher;
+  }
 
-    PeerDiscoveryManager discovery = new PeerDiscoveryManager(addressBook, new SeedResolver(), new PeerSelector(), addrService, protocolCodec, dispatcher, settings, port, registry, getaddrBackoffMaxMs);
+  private PeerDiscoveryManager buildDiscovery(PeerAddressBook addressBook, AddrExchangeHandler addrService, ProtocolCodec protocolCodec, ProtocolDispatcher dispatcher, P2pSettings settings, int port, long getaddrBackoffMaxMs) {
+    return new PeerDiscoveryManager(addressBook, new SeedResolver(), new PeerSelector(), addrService, protocolCodec, dispatcher, settings, port, registry, getaddrBackoffMaxMs);
+  }
 
+  private void configureDiscovery(PeerDiscoveryManager discovery, int port, AgentbotProperties.P2p p2p) {
     List<PeerAddress> manual = parseManualPeers(port);
     List<PeerAddress> connectOnly = parseConnectPeers(port);
     discovery.setConnectOnly(connectOnly);
     discovery.bootstrap(manual, p2p.getSeeds(), p2p.getMaxNeighbors());
+  }
 
-    server = new P2pServer(port, channel -> {
-
+  private P2pServer createServer(int port, ProtocolCodec protocolCodec, P2pSettings settings, AddrExchangeHandler addrService, ProtocolDispatcher dispatcher, long getaddrBackoffMaxMs) {
+    return new P2pServer(port, channel -> {
       java.net.SocketAddress remote = channel.remoteAddress();
       String host = "unknown";
       int remotePort = -1;
@@ -147,73 +180,79 @@ public class P2pService implements ApplicationRunner {
       connection.setGetaddrBackoffMaxMs(getaddrBackoffMaxMs);
       connection.start();
     });
+  }
 
-
-    server.start();
-
+  private void schedulePersistence(AgentbotProperties.P2p p2p, PeerAddressBook addressBook) {
     scheduler.scheduleAtFixedRate(addressBook::save, p2p.getPersistSeconds(), p2p.getPersistSeconds(), TimeUnit.SECONDS);
+  }
+
+  private void scheduleConnectionRotation(AgentbotProperties.P2p p2p, PeerDiscoveryManager discovery) {
     scheduler.scheduleAtFixedRate(() -> {
       discovery.rotateConnections(p2p.getMaxNeighbors());
       discovery.connectToCandidates(p2p.getMaxNeighbors());
     }, p2p.getRefreshSeconds(), p2p.getRefreshSeconds(), TimeUnit.SECONDS);
+  }
 
+  private void scheduleGetaddr(AgentbotProperties.P2p p2p) {
     int getaddrIntervalSeconds = p2p.getGetaddrIntervalSeconds();
-    if (getaddrIntervalSeconds > 0) {
-      int effectiveIntervalSeconds = getaddrIntervalSeconds;
-      if (p2p.getRefreshSeconds() > 0 && effectiveIntervalSeconds < p2p.getRefreshSeconds()) {
-        log.info("P2P getaddr interval raised to refreshSeconds: getaddrIntervalSeconds={}, refreshSeconds={}", getaddrIntervalSeconds, p2p.getRefreshSeconds());
-        effectiveIntervalSeconds = p2p.getRefreshSeconds();
-      }
-      long minIntervalMs = TimeUnit.SECONDS.toMillis(effectiveIntervalSeconds);
-      double sampleRatio = p2p.getGetaddrSampleRatio();
-      int maxPerMinute = p2p.getGetaddrMaxPerMinute();
-      scheduler.scheduleAtFixedRate(() -> {
-        List<P2pConnection> connections = registry.listConnections();
-        if (connections.isEmpty()) return;
-        List<P2pConnection> eligible = connections.stream()
-            .filter(P2pConnection::isHandshakeComplete)
-            .toList();
-        if (eligible.isEmpty()) return;
-        List<P2pConnection> sorted = new ArrayList<>(eligible);
-        sorted.sort(Comparator.comparingLong(P2pConnection::getLastGetAddrSentMs));
-        int sampleCount = computeSampleCount(sorted.size(), sampleRatio);
-        if (sampleCount <= 0) return;
-        List<P2pConnection> sample = new ArrayList<>(sorted.subList(0, sampleCount));
-        Collections.shuffle(sample);
+    if (getaddrIntervalSeconds <= 0) return;
 
-        long now = System.currentTimeMillis();
-        int remainingBudget = remainingGetaddrBudget(now, maxPerMinute);
-        for (P2pConnection connection : sample) {
-          if (remainingBudget <= 0) {
-            P2pMetrics.recordGetAddrSkipped();
-            break;
-          }
-          boolean sent = connection.requestGetAddr(minIntervalMs, "periodic");
-          if (sent) {
-            remainingBudget -= 1;
-            incrementGetaddrWindowCount(1, now, maxPerMinute);
-          }
+    int effectiveIntervalSeconds = getaddrIntervalSeconds;
+    if (p2p.getRefreshSeconds() > 0 && effectiveIntervalSeconds < p2p.getRefreshSeconds()) {
+      log.info("P2P getaddr interval raised to refreshSeconds: getaddrIntervalSeconds={}, refreshSeconds={}", getaddrIntervalSeconds, p2p.getRefreshSeconds());
+      effectiveIntervalSeconds = p2p.getRefreshSeconds();
+    }
+    long minIntervalMs = TimeUnit.SECONDS.toMillis(effectiveIntervalSeconds);
+    double sampleRatio = p2p.getGetaddrSampleRatio();
+    int maxPerMinute = p2p.getGetaddrMaxPerMinute();
+    scheduler.scheduleAtFixedRate(() -> {
+      List<P2pConnection> connections = registry.listConnections();
+      if (connections.isEmpty()) return;
+      List<P2pConnection> eligible = connections.stream()
+          .filter(P2pConnection::isHandshakeComplete)
+          .toList();
+      if (eligible.isEmpty()) return;
+      List<P2pConnection> sorted = new ArrayList<>(eligible);
+      sorted.sort(Comparator.comparingLong(P2pConnection::getLastGetAddrSentMs));
+      int sampleCount = computeSampleCount(sorted.size(), sampleRatio);
+      if (sampleCount <= 0) return;
+      List<P2pConnection> sample = new ArrayList<>(sorted.subList(0, sampleCount));
+      Collections.shuffle(sample);
+
+      long now = System.currentTimeMillis();
+      int remainingBudget = remainingGetaddrBudget(now, maxPerMinute);
+      for (P2pConnection connection : sample) {
+        if (remainingBudget <= 0) {
+          P2pMetrics.recordGetAddrSkipped();
+          break;
         }
-      }, effectiveIntervalSeconds, effectiveIntervalSeconds, TimeUnit.SECONDS);
-    }
+        boolean sent = connection.requestGetAddr(minIntervalMs, "periodic");
+        if (sent) {
+          remainingBudget -= 1;
+          incrementGetaddrWindowCount(1, now, maxPerMinute);
+        }
+      }
+    }, effectiveIntervalSeconds, effectiveIntervalSeconds, TimeUnit.SECONDS);
+  }
 
+  private void scheduleSkillInv(AgentbotProperties.P2p p2p, SkillExchangeService skillExchangeService) {
     int skillInvIntervalSeconds = p2p.getSkillInvIntervalSeconds();
-    if (p2p.isSkillExchangeEnabled() && skillInvIntervalSeconds > 0) {
-      scheduler.scheduleAtFixedRate(() -> {
-        List<P2pConnection> connections = registry.listConnections();
-        if (connections.isEmpty()) return;
-        int sampleCount = skillExchangeService.sampleConnectionCount(connections.size());
-        List<P2pConnection> sample = skillExchangeService.pickRandomConnections(connections, sampleCount);
-        if (sample.isEmpty()) return;
-        skillExchangeService.broadcastInv(sample);
-      }, skillInvIntervalSeconds, skillInvIntervalSeconds, TimeUnit.SECONDS);
-    }
+    if (!p2p.isSkillExchangeEnabled() || skillInvIntervalSeconds <= 0) return;
 
+    scheduler.scheduleAtFixedRate(() -> {
+      List<P2pConnection> connections = registry.listConnections();
+      if (connections.isEmpty()) return;
+      int sampleCount = skillExchangeService.sampleConnectionCount(connections.size());
+      List<P2pConnection> sample = skillExchangeService.pickRandomConnections(connections, sampleCount);
+      if (sample.isEmpty()) return;
+      skillExchangeService.broadcastInv(sample);
+    }, skillInvIntervalSeconds, skillInvIntervalSeconds, TimeUnit.SECONDS);
   }
 
   private Path resolveConfigDir() {
     return com.agentbot.core.util.ConfigPathResolver.resolveConfigDir();
   }
+
 
 
   private List<PeerAddress> parseManualPeers(int defaultPort) {

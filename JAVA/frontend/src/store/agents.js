@@ -5,6 +5,7 @@ const conversations = reactive(new Map());
 const agentSkills = reactive(new Map());
 const loading = ref(false);
 const error = ref(null);
+const sortAgentsById = (list) => [...list].sort((a, b) => (a.id || '').localeCompare(b.id || '', undefined, { numeric: true, sensitivity: 'base' }));
 export function useAgentStore() {
     // Get current agent
     const currentAgent = computed(() => agents.value.find(a => a.id === currentAgentId.value));
@@ -33,9 +34,10 @@ export function useAgentStore() {
                 throw new Error(`Failed to fetch agents: ${response.statusText}`);
             }
             const data = await response.json();
-            agents.value = data;
+            const sorted = sortAgentsById(data);
+            agents.value = sorted;
             // Initialize conversations for all agents
-            data.forEach((agent) => {
+            sorted.forEach((agent) => {
                 if (!conversations.has(agent.id)) {
                     conversations.set(agent.id, {
                         agentId: agent.id,
@@ -131,7 +133,7 @@ export function useAgentStore() {
                 throw new Error(`Failed to create agent: ${response.statusText}`);
             }
             const newAgent = await response.json();
-            agents.value.push(newAgent);
+            agents.value = sortAgentsById([...agents.value, newAgent]);
             // Initialize conversation
             conversations.set(newAgent.id, {
                 agentId: newAgent.id,
@@ -170,6 +172,7 @@ export function useAgentStore() {
             if (index !== -1) {
                 agents.value[index] = updatedAgent;
             }
+            agents.value = sortAgentsById(agents.value);
             return updatedAgent;
         }
         catch (e) {
@@ -192,7 +195,7 @@ export function useAgentStore() {
             if (!response.ok) {
                 throw new Error(`Failed to delete agent: ${response.statusText}`);
             }
-            agents.value = agents.value.filter(a => a.id !== agentId);
+            agents.value = sortAgentsById(agents.value.filter(a => a.id !== agentId));
             conversations.delete(agentId);
             // Switch to default agent if current was deleted
             if (currentAgentId.value === agentId) {
@@ -217,6 +220,21 @@ export function useAgentStore() {
                 return false;
             const msgTime = Date.parse(msg.timestamp || '') || 0;
             return Math.abs(incomingTime - msgTime) <= 120000;
+        });
+    }
+    function isNearDuplicate(messages, incoming, windowMs = 8000) {
+        if (!incoming || !incoming.content)
+            return false;
+        const incomingTime = Date.parse(incoming.timestamp || '');
+        if (Number.isNaN(incomingTime))
+            return false;
+        return messages.some((msg) => {
+            if (!msg || msg.role !== incoming.role || msg.content !== incoming.content)
+                return false;
+            const msgTime = Date.parse(msg.timestamp || '');
+            if (Number.isNaN(msgTime))
+                return false;
+            return Math.abs(incomingTime - msgTime) <= windowMs;
         });
     }
     // Add message to conversation
@@ -281,6 +299,8 @@ export function useAgentStore() {
                 return false;
             if (isLocalUserDuplicate(conv.messages, msg))
                 return false;
+            if (isNearDuplicate(conv.messages, msg))
+                return false;
             const key = `${msg.role}|${msg.content}|${msg.timestamp}`;
             return !existingKeys.has(key);
         });
@@ -305,6 +325,8 @@ export function useAgentStore() {
             if (msg?.id && existingIds.has(msg.id))
                 return false;
             if (isLocalUserDuplicate(conv.messages, msg))
+                return false;
+            if (isNearDuplicate(conv.messages, msg))
                 return false;
             const key = `${msg.role}|${msg.content}|${msg.timestamp}`;
             return !existingKeys.has(key);

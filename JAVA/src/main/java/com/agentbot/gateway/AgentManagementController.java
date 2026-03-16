@@ -339,10 +339,13 @@ public class AgentManagementController {
     summary.put("avatar", config.getAvatar());
     summary.put("enabled", config.isEnabled());
     summary.put("healthy", agent.isHealthy());
+    summary.put("sessionStatus", agent.isWorking() ? "working" : "idle");
+    summary.put("activeSessions", agent.getActiveSessions());
     summary.put("createdAt", config.getCreatedAt());
     summary.put("updatedAt", config.getUpdatedAt());
     
     return summary;
+
   }
   
   /**

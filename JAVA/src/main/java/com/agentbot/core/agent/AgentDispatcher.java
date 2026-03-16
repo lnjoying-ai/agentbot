@@ -17,15 +17,17 @@ public class AgentDispatcher {
   private final ExternalMessageBus messageBus;
 
   private final AgentRouter router;
-  private final Map<String, AgentRuntime> runtimes;
+  private final AgentRegistry registry;
   private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
   private volatile boolean running = false;
 
-  public AgentDispatcher(ExternalMessageBus messageBus, AgentRouter router, Map<String, AgentRuntime> runtimes) {
+  public AgentDispatcher(ExternalMessageBus messageBus, AgentRouter router, AgentRegistry registry) {
     this.messageBus = messageBus;
     this.router = router;
-    this.runtimes = runtimes;
+    this.registry = registry;
   }
+
 
   public void start() {
     if (running) return;
@@ -68,12 +70,18 @@ public class AgentDispatcher {
 
     log.debug("Dispatch inbound: channel={}, chatId={}, agentId={}", inbound.getChannel(), inbound.getChatId(), agentId);
 
-    AgentRuntime runtime = runtimes.get(agentId);
-    if (runtime == null) {
-      log.warn("No runtime for agentId={}", agentId);
+    AgentInstance instance = registry.getAgent(agentId);
+    if (instance == null) {
+      log.warn("No agent instance for agentId={}, fallback to default", agentId);
+      instance = registry.getAgent("default");
+    }
+    if (instance == null) {
+      log.warn("No default agent instance available, skip dispatch");
       return;
     }
-    OutboundMessage out = runtime.handle(inbound);
+    agentId = instance.getId();
+    OutboundMessage out = instance.handle(inbound);
+
 
     if (out != null) {
       if (agentId != null && !agentId.isBlank()) {

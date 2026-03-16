@@ -53,15 +53,30 @@ command -v jpackage >/dev/null 2>&1 || { echo "jpackage not found (JDK 17+ requi
 DEST="$ROOT/dist"
 mkdir -p "$DEST"
 
-jpackage \
-  --type deb \
-  --name agentbot \
-  --app-version "$VERSION" \
-  --input "$STAGE" \
-  --main-jar "$JAR" \
-  --dest "$DEST" \
-  --vendor "agentbot" \
-  --linux-shortcut \
-  --linux-menu-group "Utility"
+JPACKAGE_ARGS=(
+  --type deb
+  --name agentbot
+  --app-version "$VERSION"
+  --input "$STAGE"
+  --main-jar "$JAR"
+  --dest "$DEST"
+  --vendor "agentbot"
+)
+
+HAS_MENU_DIR=false
+for dir in /usr/share/applications /usr/local/share/applications; do
+  if [[ -d "$dir" && -w "$dir" ]]; then
+    HAS_MENU_DIR=true
+    break
+  fi
+done
+
+if $HAS_MENU_DIR; then
+  JPACKAGE_ARGS+=(--linux-shortcut --linux-menu-group "Utility")
+else
+  echo "[WARN] No writable system menu directory found; skip --linux-shortcut."
+fi
+
+jpackage "${JPACKAGE_ARGS[@]}"
 
 echo "DEB generated in $DEST"

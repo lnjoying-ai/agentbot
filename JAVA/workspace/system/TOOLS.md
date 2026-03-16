@@ -1,23 +1,84 @@
-# Tool Reference Guide
+## Tool Reference Guide
 
-This document provides detailed specifications for all available tools in the agentbot system.
+本文档根据当前代码实现汇总 agentbot 可用工具的定义、参数与使用说明。
 
-## File System Tools
+## 工具总览
+
+- **基础**: `echo`, `time_now`
+- **文件系统**: `read_file`, `write_file`, `list_dir`
+- **内存**: `memory_get`, `memory_search`
+- **执行**: `shell`
+- **子代理**: `spawn`
+- **通信**: `message`, `p2p_message`
+- **Web 搜索**: `web_search` (由配置选择 Brave / Bocha / Apimesh)
+- **浏览器控制**: `browser_control`
+
+---
+
+## 基础工具
+
+### echo
+回显输入文本。
+
+**参数**
+- `text` (string, required)
+
+**返回**
+- 原样字符串
+
+**示例**
+```json
+{
+  "name": "echo",
+  "arguments": {
+    "text": "hello"
+  }
+}
+```
+
+---
+
+### time_now
+返回当前 UTC 时间 (ISO-8601)。
+
+**参数**
+- 无
+
+**返回**
+- UTC 时间字符串
+
+**示例**
+```json
+{
+  "name": "time_now",
+  "arguments": {}
+}
+```
+
+---
+
+## 文件系统工具
 
 ### read_file
-Read the entire contents of a file.
+读取文件内容。
 
-**Parameters:**
-- `path` (string, required): Absolute or relative file path
+**参数**
+- `path` (string, required): 绝对路径或相对路径
 
-**Returns:** File content as string
+**路径解析说明**
+- 绝对路径：直接读取
+- 相对路径：优先在工作区根目录以及 `tmp`、`skills`、`system/skills`、`agents` 下解析
+- 以 `workspace/` 开头：强制在工作区根目录下解析
 
-**Example:**
+**返回**
+- 文件内容文本
+
+**示例**
 ```json
 {
   "name": "read_file",
   "arguments": {
-    "path": "src/main/java/com/example/App.java"
+    "path": "workspace/system/TOOLS.md"
   }
 }
 ```
@@ -25,54 +86,27 @@ Read the entire contents of a file.
 ---
 
 ### write_file
-Create a new file or overwrite an existing file.
+写入/覆盖文件内容。
 
-**Parameters:**
-- `path` (string, required): Target file path
-- `content` (string, required): Content to write
+**参数**
+- `path` (string, required): 文件路径
+- `content` (string, required): 写入内容
 
-**Returns:** Success message
+**路径解析说明**
+- 绝对路径：直接写入
+- 相对路径：默认写入到 `workspace/tmp` 下
+- 以 `workspace/` 开头：写入工作区根目录下对应位置
 
-**Notes:**
-- Creates parent directories automatically
-- Use with caution—this overwrites existing files completely
+**返回**
+- 写入成功提示
 
-**Example:**
+**示例**
 ```json
 {
   "name": "write_file",
   "arguments": {
-    "path": "config/settings.json",
-    "content": "{\"debug\": true}"
-  }
-}
-```
-
----
-
-### replace_in_file
-Make precise edits by replacing specific text sections.
-
-**Parameters:**
-- `path` (string, required): File to edit
-- `old_str` (string, required): Exact text to find and replace
-- `new_str` (string, required): Replacement text
-
-**Returns:** Success message or error if old_str not found
-
-**Critical Rules:**
-- `old_str` must match EXACTLY (including whitespace, indentation)
-- If `old_str` appears multiple times, the operation fails
-- Read the file first to ensure you have the correct current content
-
-**Example:**
-```json
-{
-  "name": "replace_in_file",
-  "arguments": {
-    "path": "src/Config.java",
-    "old_str": "private int timeout = 30;",
-    "new_str": "private int timeout = 60;"
+    "path": "workspace/tmp/demo.txt",
+    "content": "hello"
   }
 }
 ```
@@ -80,239 +114,173 @@ Make precise edits by replacing specific text sections.
 ---
 
 ### list_dir
-List contents of a directory.
+列出目录内容（按名称排序）。
 
-**Parameters:**
-- `path` (string, required): Directory path
+**参数**
+- `path` (string, required): 目录路径
 
-**Returns:** List of files and subdirectories
+**返回**
+- 制表符分隔的表格：`name type size modified`
 
-**Example:**
+**示例**
 ```json
 {
   "name": "list_dir",
   "arguments": {
-    "path": "src/main/java/com/agentbot"
+    "path": "workspace/system"
   }
 }
 ```
 
 ---
 
-### search_file
-Find files matching a pattern.
+## 内存工具
 
-**Parameters:**
-- `pattern` (string, required): File name pattern (supports wildcards)
-- `directory` (string, required): Root directory to search
-- `recursive` (boolean, optional): Search subdirectories (default: true)
+### memory_get
+读取长期记忆内容。
 
-**Returns:** List of matching file paths
+**参数**
+- 无
 
-**Example:**
-```json
-{
-  "name": "search_file",
-  "arguments": {
-    "pattern": "*.java",
-    "directory": "src/",
-    "recursive": true
-  }
-}
-```
+**返回**
+- 记忆内容文本（或 `memory is empty`）
 
 ---
 
-## Code Search Tools
+### memory_search
+搜索长期记忆与日志。
 
-### grep
-Search for text patterns in files.
+**参数**
+- `query` (string, required)
+- `limit` (integer, optional): 返回条数，默认 5
 
-**Parameters:**
-- `pattern` (string, required): Search pattern (supports regex)
-- `directory` (string, required): Directory to search
-- `file_types` (string, optional): Comma-separated extensions (e.g., ".java,.xml")
-- `case_sensitive` (boolean, optional): Case-sensitive search (default: false)
-
-**Returns:** Matching lines with file names and line numbers
-
-**Example:**
-```json
-{
-  "name": "grep",
-  "arguments": {
-    "pattern": "public class.*Tool",
-    "directory": "src/main/java",
-    "file_types": ".java"
-  }
-}
-```
+**返回**
+- 匹配条目（或 `no memory matched`）
 
 ---
 
-## Execution Tools (⚠️ Requires Approval)
+## 执行工具
 
 ### shell
-Execute a shell command.
+在宿主机执行命令（谨慎使用）。
 
-**Parameters:**
-- `command` (string, required): Command to execute
-- `working_dir` (string, optional): Working directory
-- `confirmed` (boolean, internal): Set by system after user approval
+**参数**
+- `command` (string, required)
 
-**Returns:** Command output (stdout + stderr)
+**执行细节**
+- Windows 优先 PowerShell；若无脚本上下文则用 `cmd`，并强制 UTF-8 输出
+- macOS 使用 `zsh`，Linux 使用 `sh`
+- 超时时间：60 秒
 
-**Approval Triggers:**
-Commands containing these keywords require user confirmation:
-- File operations: `rm`, `del`, `rmdir`, `mv`, `cp -r`
-- Permissions: `chmod`, `chown`, `sudo`, `su`
-- System management: `systemctl`, `service`, `kill`, `killall`, `pkill`
-- Package managers: `npm install`, `pip install`, `apt`, `yum`, `dnf`
-- Redirection: `>`, `>>` (output redirection)
-- Network: `curl`, `wget`, `nc`, `netcat`
-
-**Safety Notes:**
-- Commands timeout after 60 seconds
-- Output is truncated at 10,000 characters
-- Always explain what the command does before execution
-
-**Example:**
-```json
-{
-  "name": "shell",
-  "arguments": {
-    "command": "find . -name '*.log' -mtime +7 -delete"
-  }
-}
-```
+**审批策略**
+`shell` 会根据命令内容判断是否需要审批：
+- 含管道/重定向/命令拼接符（如 `|`, `&`, `;`, `>`, `<`, `` ` ``, `$(`）
+- 或出现高风险关键字（删除、权限、系统管理、网络、包管理、脚本执行等）
 
 ---
+
+## 子代理
 
 ### spawn
-Launch a background process.
+创建一个子代理任务（异步处理复杂工作）。
 
-**Parameters:**
-- `command` (string, required): Command to run
-- `name` (string, optional): Process identifier
-- `working_dir` (string, optional): Working directory
-- `confirmed` (boolean, internal): Set by system after user approval
+**参数**
+- `task` (string, required): 子任务描述
+- `label` (string, optional): 任务标签
 
-**Returns:** Process ID and status
-
-**Use Cases:**
-- Web servers: `java -jar app.jar`
-- Development servers: `npm run dev`
-- File watchers: `nodemon script.js`
-
-**Important:**
-- ALL spawn operations require approval
-- Process runs in background until manually stopped
-- Use for long-running tasks only (>30 seconds)
-
-**Example:**
-```json
-{
-  "name": "spawn",
-  "arguments": {
-    "command": "python -m http.server 8080",
-    "name": "dev-server"
-  }
-}
-```
+**返回**
+- 子代理 ID
 
 ---
 
-## Web Tools
-
-### web_search
-Search the internet using a search engine.
-
-**Parameters:**
-- `query` (string, required): Search query
-
-**Returns:** Top search results with titles, URLs, and snippets
-
-**Example:**
-```json
-{
-  "name": "web_search",
-  "arguments": {
-    "query": "Spring Boot async configuration"
-  }
-}
-```
-
----
-
-### web_fetch
-Fetch and extract main content from a URL.
-
-**Parameters:**
-- `url` (string, required): Web page URL
-
-**Returns:** Extracted text content
-
-**Notes:**
-- JavaScript-rendered content may not be available
-- Content is truncated at 8,000 characters
-- Respects robots.txt
-
-**Example:**
-```json
-{
-  "name": "web_fetch",
-  "arguments": {
-    "url": "https://docs.spring.io/spring-boot/reference/features/task-execution.html"
-  }
-}
-```
-
----
-
-## Communication Tools
+## 通信工具
 
 ### message
-Send a message to the user (used internally by the system).
+向指定通道发送消息。
 
-**Parameters:**
-- `content` (string, required): Message text
-- `channel` (string, optional): Target channel
-- `chat_id` (string, optional): Target chat ID
+**参数**
+- `content` (string, required)
+- `channel` (string, optional)
+- `chatId` (string, optional)
 
-**Returns:** Delivery confirmation
-
-**Note:** This is primarily used by the system for routing. Direct calls are rare.
+**说明**
+- 如果未提供 `channel` / `chatId`，将尝试使用上下文默认值
 
 ---
 
-## Tool Execution Flow
+### p2p_message
+向外部节点的 agent 发送 P2P 消息。
 
-### Standard Flow (Safe Tools)
-```
-User Request → LLM decides tool → Tool executes → Result returned → LLM continues
-```
+**参数**
+- `content` (string, required)
+- `toNodeId` (string, required)
+- `toAgentId` (string, required)
+- `fromAgentId` (string, required)
 
-### Approval Flow (Risky Tools)
-```
-User Request → LLM decides tool → System detects risk
-             ↓
-System creates pending action → Frontend shows confirmation card
-             ↓
-User clicks "确认执行" → System executes with confirmed=true
-             ↓
-Result returned → LLM continues
-```
+---
 
-### Approval Policy Config
-You can control tool approval behavior via `agentbot.approvals.tools` in `config/agentbot.yml`:
+## Web 搜索
+
+### web_search
+执行 Web 搜索，具体实现由配置决定。
+
+**配置**
+`agentbot.search.type` 决定搜索提供方：
+- `brave` → Brave Search
+- `bocha` → Bocha Search
+- `apimesh` → Apimesh Search
+
+**参数（按提供方）**
+- **Brave**
+  - `query` (string, required)
+  - `count` (integer, optional, 1-10)
+- **Bocha / Apimesh**
+  - `query` (string, required)
+  - `freshness` (string, optional): `noLimit`, `oneDay`, `oneWeek`, `oneMonth`, `oneYear`
+
+**返回**
+- 结果标题、URL 与摘要
+
+---
+
+## 浏览器控制
+
+### browser_control
+通过本地浏览器控制服务执行浏览器操作。
+
+**参数**
+- `action` (string, required):
+  - `status`, `start`, `stop`, `profiles`, `tabs`, `open`, `focus`, `close`
+  - `snapshot`, `act`, `navigate`, `goto`, `click`, `type`, `screenshot`, `content`, `upload`
+- `profile` (string, optional): 浏览器配置文件名
+- `target` (string, optional): `host` | `sandbox` | `node`
+- `targetId` (string, optional): 目标标签页 ID
+- `snapshotFormat` (string, optional): `ai` / `aria` / `role`
+- `url` / `targetUrl` (string, optional): 导航 URL
+- `selector` (string, optional): CSS 选择器
+- `text` (string, optional): 输入文本
+- `filePath` (string, optional): 上传文件路径
+- `ref` (string, optional): `snapshot` 的引用 ID
+- `kind` (string, optional): `act` 类型 (click/type/hover/press)
+- `key` (string, optional): `press` 的键值
+
+**审批策略**
+- `target` 为 `sandbox` 或 `node` 时需要审批
+- `action` 为 `upload` / `screenshot` / `content` 时需要审批
+
+---
+
+## 审批策略配置
+
+审批行为由 `config/agentbot.yml` 的 `approvals.tools` 控制：
 - `security`: `deny` | `allowlist` | `full`
 - `ask`: `off` | `on-miss` | `always`
-- `askFallback`: `deny` | `allow` (used when UI is unavailable)
-- `uiChannels`: channels that can display approval UI (default: `web`)
-- `allowlist`: tool + arg pattern rules that are auto-allowed
+- `askFallback`: `deny` | `allow`
+- `uiChannels`: 允许弹出审批 UI 的通道
+- `allowlist`: 指定工具 + 参数匹配的自动放行规则
 
-Example:
-```
+**示例**
+```yaml
 approvals:
   tools:
     security: "allowlist"
@@ -323,130 +291,22 @@ approvals:
     allowlist:
       - tool: "shell"
         match:
-          command: '/^(ls|pwd|dir)(\\s|$).*/'
+          command: '/^(ls|pwd|dir)(\s|$).*/'
 ```
 
 ---
 
+## 扩展工具
 
-## Error Handling
-
-### Common Errors
-
-**FileNotFoundError:**
-- Cause: File path doesn't exist
-- Solution: Use `list_dir` to verify path, check for typos
-
-**PermissionDenied:**
-- Cause: Insufficient permissions to read/write file
-- Solution: Check file ownership, use appropriate working directory
-
-**TimeoutError (shell/spawn):**
-- Cause: Command took longer than 60 seconds
-- Solution: Break into smaller operations or use spawn for long tasks
-
-**DuplicateMatchError (replace_in_file):**
-- Cause: `old_str` appears multiple times in file
-- Solution: Make `old_str` more specific with surrounding context
+新增工具时需要：
+1. 实现 `Tool` 或 `ToolWithDefinition`
+2. 在 `ToolRegistry` 注册
+3. 必要时实现 `requiresApproval()`
+4. 更新本文档
 
 ---
 
-## Best Practices
-
-### 1. Read Before Write
-```
-❌ Wrong:
-replace_in_file(path="config.json", old_str="port: 8080", new_str="port: 9000")
-
-✅ Correct:
-read_file(path="config.json") → inspect content
-replace_in_file with exact match including surrounding context
-```
-
-### 2. Verify After Edit
-```
-replace_in_file(...) → success message
-read_file(...) → verify changes applied correctly
-```
-
-### 3. Use Appropriate Tools
-```
-❌ Don't use shell for file operations:
-shell(command="cat file.txt")
-
-✅ Use dedicated tools:
-read_file(path="file.txt")
-```
-
-### 4. Batch Related Operations
-```
-Instead of:
-- read_file("a.txt")
-- read_file("b.txt")
-- read_file("c.txt")
-
-Do:
-- list_dir to get all files
-- Process in one tool call if possible
-```
-
----
-
-## Browser Anti-Bot Config
-Use `agentbot.browser.antiBot` to enable anti-bot strategies for `browser_control`:
-- `level`: `basic` | `enhanced` | `advanced`
-  - `basic`: only User-Agent + headers
-  - `enhanced`: stealth script + resource blocking
-  - `advanced`: proxy pool + behavior simulation + detection
-- `userAgent`, `headers`, `locale`, `timezoneId`: browser fingerprint controls
-- `blockResourceTypes`, `blockUrlPatterns`: resource blocking allowlist
-- `proxies`: proxy pool list (e.g. `http://user:pass@host:port`)
-
-Example:
-```
-agentbot:
-  browser:
-    antiBot:
-      level: "enhanced"
-      userAgent: ""
-      headers:
-        Accept-Language: "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7"
-      blockResourceTypes: ["image", "font", "media"]
-      blockUrlPatterns: ["*://*/*analytics*", "*://*/*gtag*"]
-```
-
----
-
-## Extending Tools
-
-
-To add custom tools to the system:
-
-1. Create a Java class implementing the `Tool` interface
-2. Register in `ToolRegistry`
-3. Implement `requiresApproval()` logic if needed
-4. Update this documentation
-
-**Example Tool Structure:**
-```java
-public class MyTool implements Tool {
-    @Override
-    public String name() { return "my_tool"; }
-    
-    @Override
-    public String description() { return "Tool description"; }
-    
-    @Override
-    public Map<String, Object> parameters() { /* ... */ }
-    
-    @Override
-    public ToolExecutionResult execute(Map<String, Object> args) { /* ... */ }
-}
-```
-
----
-
-**For more information, see:**
-- `AGENTS.md` - Agent behavior guidelines
-- `src/main/java/com/agentbot/core/tools/` - Tool implementations
-- `ToolRegistry.java` - Tool registration and approval logic
+**参考**
+- `config/agentbot.yml`
+- `src/main/java/com/agentbot/core/tools/`
+- `src/main/java/com/agentbot/config/AgentConfiguration.java`

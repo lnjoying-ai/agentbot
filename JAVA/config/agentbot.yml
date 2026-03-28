@@ -190,11 +190,11 @@ agentbot:
     auth:
       enabled: false
       username: "lnjoying"
-      password: "Ilovelnjoying2045!"
+      password: "lnjoying2045!"
 
   search:
 
-    type: "bocha"
+    type: "apimesh"
     braveApiKey: ""
     bochaApiKey: ""
     apimeshKey: ""
@@ -214,13 +214,14 @@ agentbot:
     enabled: true
     controlPort: 18791
     defaultProfile: "agentbot"
-    headless: true
+    headless: false
     noSandbox: false
     attachOnly: false
-    remoteCdpTimeoutMs: 15000
+    remoteCdpTimeoutMs: 30000
+    navigationTimeoutMs: 60000
     sandboxBridgeUrl: ""
     nodeBridgeUrl: ""
-    executablePath: ""  #C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+    executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe"
     profiles:
       agentbot:
         driver: "agentbot"
@@ -229,9 +230,10 @@ agentbot:
         color: "#FF4500"
       chrome:
         driver: "extension"
-        userDataDir: "chrome"
+        userDataDir: ""
         cdpUrl: "http://127.0.0.1:18792"
         color: "#00AA00"
+
     antiBot:
       level: "enhanced" # basic | enhanced | advanced
       userAgent: ""
@@ -309,7 +311,7 @@ agentbot:
     apimesh:
       apiKey: ""
       baseUrl: "https://api.apimesh.io/v1/chat/completions"
-      model: "kimi-k2.5"
+      model: "auto"
 
     kimi:
       apiKey: ""

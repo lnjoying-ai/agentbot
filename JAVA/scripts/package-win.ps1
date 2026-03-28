@@ -37,7 +37,7 @@ if (Test-Path $frontendDist) {
 
 $logoSource = Join-Path $root "frontend\public\dragon-logo.png"
 $logoPngSource = Join-Path $root "dragon-logo.png"
-$logoIcoSource = Join-Path $root "dragon-logo.ico"
+$logoIcoSource = Join-Path $root "dragon-logo-S.png"
 
 if (Test-Path $logoSource) {
   $logoTarget = Join-Path $stage "dragon-logo.png"
@@ -47,7 +47,7 @@ if (Test-Path $logoPngSource) {
   Copy-Item $logoPngSource (Join-Path $stage "dragon-logo.png") -Force
 }
 if (Test-Path $logoIcoSource) {
-  Copy-Item $logoIcoSource (Join-Path $stage "dragon-logo.ico") -Force
+  Copy-Item $logoIcoSource (Join-Path $stage "dragon-logo-S.png") -Force
 }
 
 

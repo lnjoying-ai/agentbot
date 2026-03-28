@@ -42,6 +42,9 @@ const agentStyle = (agent) => ({
     top: `${agent.y}%`
 });
 const randomBetween = (min, max) => Math.random() * (max - min) + min;
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const MIN_POS = 4;
+const MAX_POS = 96;
 const isOffline = (agent) => agent.enabled === false || agent.status === "inactive";
 const syncAgents = () => {
     const current = new Map(worldAgents.value.map(agent => [agent.id, agent]));
@@ -81,8 +84,8 @@ const moveAgent = (agent) => {
         return;
     const speedFactor = agent.state === "working" ? 0.5 : 1;
     const step = agent.speed * speed.value * speedFactor;
-    agent.x += (dx / dist) * step;
-    agent.y += (dy / dist) * step;
+    agent.x = clamp(agent.x + (dx / dist) * step, MIN_POS, MAX_POS);
+    agent.y = clamp(agent.y + (dy / dist) * step, MIN_POS, MAX_POS);
 };
 const chooseTarget = (agent) => {
     const zone = zones.value[Math.floor(Math.random() * zones.value.length)];
@@ -107,10 +110,10 @@ const tick = () => {
 const scatterAgents = () => {
     worldAgents.value = worldAgents.value.map(agent => ({
         ...agent,
-        x: randomBetween(6, 94),
-        y: randomBetween(6, 94),
-        targetX: randomBetween(0, 100),
-        targetY: randomBetween(0, 100),
+        x: randomBetween(MIN_POS, MAX_POS),
+        y: randomBetween(MIN_POS, MAX_POS),
+        targetX: randomBetween(MIN_POS, MAX_POS),
+        targetY: randomBetween(MIN_POS, MAX_POS),
         state: agent.state === "offline" ? "offline" : agent.state
     }));
 };
@@ -221,18 +224,6 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "world-decor" },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-    ...{ class: "road road-main" },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-    ...{ class: "road road-side" },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-    ...{ class: "fence fence-top" },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-    ...{ class: "fence fence-right" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
     ...{ class: "flowers flowers-left" },
@@ -347,14 +338,6 @@ for (const [agent] of __VLS_getVForSourceType((__VLS_ctx.worldAgents))) {
 /** @type {__VLS_StyleScopedClasses['world-map']} */ ;
 /** @type {__VLS_StyleScopedClasses['world-bg']} */ ;
 /** @type {__VLS_StyleScopedClasses['world-decor']} */ ;
-/** @type {__VLS_StyleScopedClasses['road']} */ ;
-/** @type {__VLS_StyleScopedClasses['road-main']} */ ;
-/** @type {__VLS_StyleScopedClasses['road']} */ ;
-/** @type {__VLS_StyleScopedClasses['road-side']} */ ;
-/** @type {__VLS_StyleScopedClasses['fence']} */ ;
-/** @type {__VLS_StyleScopedClasses['fence-top']} */ ;
-/** @type {__VLS_StyleScopedClasses['fence']} */ ;
-/** @type {__VLS_StyleScopedClasses['fence-right']} */ ;
 /** @type {__VLS_StyleScopedClasses['flowers']} */ ;
 /** @type {__VLS_StyleScopedClasses['flowers-left']} */ ;
 /** @type {__VLS_StyleScopedClasses['flowers']} */ ;

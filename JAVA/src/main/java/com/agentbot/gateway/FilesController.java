@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,26 +35,27 @@ public class FilesController {
 
 
   @GetMapping
-  public List<Map<String, Object>> listFiles() {
-    Path tmpDir = resolveTmpDir();
-    if (!Files.exists(tmpDir)) {
+  public List<Map<String, Object>> listFiles(@org.springframework.web.bind.annotation.RequestParam(value = "path", required = false) String path) {
+    Path rootDir = resolveWorkspaceDir();
+    Path targetDir = resolveWorkspacePath(path);
+    if (targetDir == null || !Files.exists(targetDir) || !Files.isDirectory(targetDir)) {
       return List.of();
     }
 
     List<Map<String, Object>> items = new ArrayList<>();
-    try (var stream = Files.list(tmpDir)) {
-      stream.filter(Files::isRegularFile)
-          .sorted(Comparator.comparingLong(this::lastModified).reversed())
-          .forEach(path -> items.add(describeFile(path)));
+    try (var stream = Files.list(targetDir)) {
+      stream.sorted(Comparator.comparing((Path p) -> !Files.isDirectory(p))
+          .thenComparing(p -> p.getFileName().toString().toLowerCase()))
+          .forEach(p -> items.add(describeEntry(rootDir, p)));
     } catch (Exception e) {
-      log.warn("Failed to list tmp files", e);
+      log.warn("Failed to list workspace files", e);
     }
     return items;
   }
 
-  @GetMapping("/{name}")
-  public ResponseEntity<Resource> download(@PathVariable("name") String name) {
-    Path target = resolveTmpFile(name);
+  @GetMapping("/download")
+  public ResponseEntity<Resource> download(@org.springframework.web.bind.annotation.RequestParam("path") String path) {
+    Path target = resolveWorkspacePath(path);
     if (target == null || !Files.exists(target) || !Files.isRegularFile(target)) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "file not found");
     }
@@ -76,36 +77,35 @@ public class FilesController {
     }
   }
 
-  @DeleteMapping("/{name}")
-  public Map<String, Object> delete(@PathVariable("name") String name) {
-    Path target = resolveTmpFile(name);
-    if (target == null || !Files.exists(target) || !Files.isRegularFile(target)) {
+  @DeleteMapping
+  public Map<String, Object> delete(@org.springframework.web.bind.annotation.RequestParam("path") String path) {
+    Path target = resolveWorkspacePath(path);
+    if (target == null || !Files.exists(target)) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "file not found");
+    }
+    if (resolveWorkspaceDir().equals(target)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cannot delete workspace root");
     }
 
     try {
-      Files.delete(target);
-      return Map.of("ok", true, "name", target.getFileName().toString());
+      deleteRecursively(target);
+      return Map.of("ok", true, "path", path);
     } catch (Exception e) {
       log.error("Failed to delete file", e);
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "delete failed");
     }
   }
 
-  private long lastModified(Path path) {
-    try {
-      return Files.getLastModifiedTime(path).toMillis();
-    } catch (Exception ignored) {
-      return 0L;
-    }
-  }
-
-  private Map<String, Object> describeFile(Path path) {
+  private Map<String, Object> describeEntry(Path rootDir, Path path) {
     Map<String, Object> item = new LinkedHashMap<>();
     String name = path.getFileName().toString();
+    String relative = rootDir.relativize(path).toString().replace("\\", "/");
+    boolean isDir = Files.isDirectory(path);
     item.put("name", name);
+    item.put("path", relative);
+    item.put("type", isDir ? "dir" : "file");
     try {
-      item.put("size", Files.size(path));
+      item.put("size", isDir ? 0L : Files.size(path));
     } catch (Exception ignored) {
       item.put("size", 0L);
     }
@@ -117,16 +117,37 @@ public class FilesController {
     return item;
   }
 
-  private Path resolveTmpDir() {
-    return ConfigPathResolver.resolveUserDataDir().resolve("workspace").resolve("tmp").toAbsolutePath().normalize();
+  private Path resolveWorkspaceDir() {
+    return ConfigPathResolver.resolveUserDataDir().resolve("workspace").toAbsolutePath().normalize();
   }
 
-  private Path resolveTmpFile(String name) {
-    if (name == null || name.isBlank()) return null;
-    if (name.contains("/") || name.contains("\\") || name.contains("..")) return null;
-    Path tmpDir = resolveTmpDir();
-    Path target = tmpDir.resolve(name).normalize();
-    if (!target.startsWith(tmpDir)) return null;
+  private Path resolveWorkspacePath(String path) {
+    Path rootDir = resolveWorkspaceDir();
+    if (path == null || path.isBlank() || "/".equals(path)) {
+      return rootDir;
+    }
+    if (path.contains("\\") || path.contains("..")) return null;
+    String normalized = path.startsWith("/") ? path.substring(1) : path;
+    Path target = rootDir.resolve(normalized).normalize();
+    if (!target.startsWith(rootDir)) return null;
     return target;
   }
+
+  private void deleteRecursively(Path path) throws Exception {
+    if (!Files.exists(path)) return;
+    if (Files.isDirectory(path)) {
+      try (var stream = Files.walk(path)) {
+        stream.sorted(Comparator.reverseOrder()).forEach(p -> {
+          try {
+            Files.deleteIfExists(p);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+      }
+    } else {
+      Files.delete(path);
+    }
+  }
 }
+

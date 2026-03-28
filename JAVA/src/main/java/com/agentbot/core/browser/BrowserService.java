@@ -506,9 +506,21 @@ public class BrowserService {
     return configured > 0 ? configured : 15000;
   }
 
+  private double resolveNavigationTimeoutMs() {
+    int configured = browserConfig == null ? 30000 : browserConfig.getNavigationTimeoutMs();
+    return configured > 0 ? configured : 30000;
+  }
+
+  private Page.NavigateOptions buildNavigateOptions() {
+    return new Page.NavigateOptions()
+        .setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
+        .setTimeout(resolveNavigationTimeoutMs());
+  }
+
   private void audit(String action, String profile, String targetId, boolean ok, String detail) {
     log.info("browser_audit action={} profile={} targetId={} ok={} detail={}", action, profile, targetId, ok, detail);
   }
+
 
   private String normalizeRef(String ref) {
 
@@ -647,8 +659,9 @@ public class BrowserService {
       Page page = context.newPage();
       String targetUrl = safeText(url);
       if (!targetUrl.isBlank()) {
-        page.navigate(targetUrl, new Page.NavigateOptions().setWaitUntil(WaitUntilState.NETWORKIDLE));
+        page.navigate(targetUrl, buildNavigateOptions());
       }
+
       String id = registerAndGetId(page);
       return new BrowserTabInfo(id, safeText(page.title()), safeText(page.url()));
     }
@@ -706,7 +719,8 @@ public class BrowserService {
       String targetUrl = safeText(url);
       if (targetUrl.isBlank()) return BrowserActionResult.error("url required");
       resetAntiBotSignals();
-      page.navigate(targetUrl, new Page.NavigateOptions().setWaitUntil(WaitUntilState.NETWORKIDLE));
+      page.navigate(targetUrl, buildNavigateOptions());
+
       return BrowserActionResult.ok("Navigated to " + targetUrl + "\nTitle: " + safeText(page.title()));
     }
 

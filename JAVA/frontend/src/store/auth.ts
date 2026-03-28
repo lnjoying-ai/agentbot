@@ -30,13 +30,9 @@ export async function fetchAuthState() {
       checked: true
     };
   } catch (error) {
-    authState.value = {
-      enabled: true,
-      authenticated: false,
-      username: null,
-      checked: true
-    };
+    setAuthUnauthenticated();
   }
+
   return authState.value;
 }
 
@@ -53,18 +49,23 @@ export function setAuthAuthenticated(username?: string | null) {
   };
 }
 
+export function setAuthUnauthenticated() {
+  authState.value = {
+    enabled: true,
+    authenticated: false,
+    username: null,
+    checked: true
+  };
+}
+
 export async function logout() {
   try {
     await fetch(`${baseUrl()}/api/auth/logout`, { method: "POST" });
   } finally {
-    authState.value = {
-      enabled: true,
-      authenticated: false,
-      username: null,
-      checked: true
-    };
+    setAuthUnauthenticated();
   }
 }
+
 
 export function getAuthState() {
   return authState;

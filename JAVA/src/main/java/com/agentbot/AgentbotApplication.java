@@ -281,14 +281,14 @@ public class AgentbotApplication {
     try {
       Path appDir = ConfigPathResolver.resolveAppDir();
       if (appDir != null) {
-        Path icoPath = appDir.resolve("dragon-logo.ico");
+        Path icoPath = appDir.resolve("dragon-logo-S.png");
         if (Files.exists(icoPath)) {
           Image icoImage = new ImageIcon(icoPath.toString()).getImage();
           if (icoImage != null) {
             return icoImage.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
           }
         }
-        Path pngPath = appDir.resolve("dragon-logo.png");
+        Path pngPath = appDir.resolve("dragon-logo-S.png");
         if (Files.exists(pngPath)) {
           BufferedImage source = ImageIO.read(pngPath.toFile());
           if (source != null) {

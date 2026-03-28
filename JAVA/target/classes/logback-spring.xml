@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <springProperty scope="context" name="LOG_FILE" source="logging.file.name"/>
+  <springProperty scope="context" name="LOG_PATH" source="logging.file.path"/>
+  <springProperty scope="context" name="ROOT_LEVEL" source="logging.level.root" defaultValue="INFO"/>
+  <springProperty scope="context" name="AGENTBOT_LEVEL" source="logging.level.com.agentbot" defaultValue="DEBUG"/>
+  <springProperty scope="context" name="HTTP_WIRE_LEVEL" source="logging.level.org.apache.hc.client5.http.wire" defaultValue="DEBUG"/>
+  <springProperty scope="context" name="REST_TEMPLATE_LEVEL" source="logging.level.org.springframework.web.client.RestTemplate" defaultValue="DEBUG"/>
+
+  <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+  <property name="RESOLVED_LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-./log}/agentbot.log}"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>${RESOLVED_LOG_FILE}</file>
+    <append>true</append>
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <logger name="com.agentbot" level="${AGENTBOT_LEVEL}"/>
+  <logger name="com.agentbot.core.skills.SkillLoader" level="INFO"/>
+  <logger name="com.agentbot.core.tools.ToolRegistry" level="INFO"/>
+  <logger name="org.apache.hc.client5.http.wire" level="${HTTP_WIRE_LEVEL}"/>
+  <logger name="org.springframework.web.client.RestTemplate" level="${REST_TEMPLATE_LEVEL}"/>
+
+
+  <root level="${ROOT_LEVEL}">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>

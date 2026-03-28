@@ -1,0 +1,45 @@
+# Site Patterns Directory
+
+This directory stores site-specific experience and patterns learned during web access operations.
+
+File naming convention: `{domain}.md`
+
+Example: `xiaohongshu.com.md`, `weibo.com.md`
+
+## File Template
+
+```markdown
+---
+domain: example.com
+aliases: [示例, Example]
+updated: 2026-03-19
+---
+
+## 平台特征
+- 架构: SPA/SSR/混合
+- 反爬级别: 低/中/高
+- 登录需求: 公开内容/需登录/部分需登录
+- 内容加载方式: 静态/动态/懒加载
+
+## 有效模式
+### URL 模式
+- 列表页: `https://example.com/list?page={n}`
+- 详情页: `https://example.com/item/{id}`
+
+### 操作策略
+1. 第一步: ...
+2. 第二步: ...
+
+### 选择器参考
+- 标题: `h1.title`
+- 内容: `div.content`
+- 下一页: `a.next`
+
+## 已知陷阱
+- 陷阱1: 描述 + 发现日期
+- 陷阱2: 描述 + 发现日期
+```
+
+## Existing Site Patterns
+
+<!-- List existing site patterns here as they are created -->

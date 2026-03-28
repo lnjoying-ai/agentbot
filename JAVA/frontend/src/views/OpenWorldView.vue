@@ -29,13 +29,10 @@
       <div class="world-map">
         <div class="world-bg"></div>
         <div class="world-decor">
-          <span class="road road-main"></span>
-          <span class="road road-side"></span>
-          <span class="fence fence-top"></span>
-          <span class="fence fence-right"></span>
           <span class="flowers flowers-left"></span>
           <span class="flowers flowers-right"></span>
         </div>
+
         <div class="zone" v-for="zone in zones" :key="zone.id" :style="zoneStyle(zone)">
           <span>{{ zone.label }}</span>
         </div>
@@ -162,6 +159,10 @@ const agentStyle = (agent: WorldAgent) => ({
 });
 
 const randomBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const MIN_POS = 4;
+const MAX_POS = 96;
+
 
 const isOffline = (agent: Agent) => agent.enabled === false || agent.status === "inactive";
 
@@ -208,8 +209,9 @@ const moveAgent = (agent: WorldAgent) => {
   if (dist < 1) return;
   const speedFactor = agent.state === "working" ? 0.5 : 1;
   const step = agent.speed * speed.value * speedFactor;
-  agent.x += (dx / dist) * step;
-  agent.y += (dy / dist) * step;
+  agent.x = clamp(agent.x + (dx / dist) * step, MIN_POS, MAX_POS);
+  agent.y = clamp(agent.y + (dy / dist) * step, MIN_POS, MAX_POS);
+
 };
 
 
@@ -238,10 +240,11 @@ const tick = () => {
 const scatterAgents = () => {
   worldAgents.value = worldAgents.value.map(agent => ({
     ...agent,
-    x: randomBetween(6, 94),
-    y: randomBetween(6, 94),
-    targetX: randomBetween(0, 100),
-    targetY: randomBetween(0, 100),
+    x: randomBetween(MIN_POS, MAX_POS),
+    y: randomBetween(MIN_POS, MAX_POS),
+    targetX: randomBetween(MIN_POS, MAX_POS),
+    targetY: randomBetween(MIN_POS, MAX_POS),
+
 
     state: agent.state === "offline" ? "offline" : agent.state
   }));

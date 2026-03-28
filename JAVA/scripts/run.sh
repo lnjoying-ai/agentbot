@@ -17,7 +17,18 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 export AGENTBOT_CONFIG="$CONFIG_FILE"
-mvn -q -DskipTests package
+
+STATIC_INDEX="$ROOT_DIR/src/main/resources/static/index.html"
+if [ ! -f "$STATIC_INDEX" ]; then
+  echo "[agentbot] static index missing, build frontend assets"
+  "$ROOT_DIR/scripts/build.sh"
+fi
+
+if [ ! -f "$STATIC_INDEX" ]; then
+  echo "[ERROR] static index still missing: $STATIC_INDEX"
+  echo "[ERROR] please check frontend build logs"
+  exit 1
+fi
 
 JAR_PATH=$(ls -1t "$ROOT_DIR"/target/agentbot-*.jar 2>/dev/null | grep -vE '(sources|javadoc)\.jar$' | head -n 1 || true)
 if [ -z "$JAR_PATH" ]; then

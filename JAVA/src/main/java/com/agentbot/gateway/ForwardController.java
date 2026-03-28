@@ -20,7 +20,9 @@ public class ForwardController {
             "/skills/store",
             "/cron",
             "/monitor",
-            "/config"
+            "/config",
+            "/open-world"
+
     })
     public String forward() {
         return "forward:/index.html";

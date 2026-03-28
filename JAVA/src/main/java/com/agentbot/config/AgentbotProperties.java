@@ -1222,7 +1222,10 @@ public class AgentbotProperties {
     private boolean noSandbox = false;
     private boolean attachOnly = false;
     private int remoteCdpTimeoutMs = 15000;
+    private int navigationTimeoutMs = 60000;
     private String sandboxBridgeUrl = "";
+
+
     private String nodeBridgeUrl = "";
     private String executablePath = "";
     private java.util.Map<String, BrowserProfile> profiles = new java.util.HashMap<>();
@@ -1285,9 +1288,18 @@ public class AgentbotProperties {
       this.remoteCdpTimeoutMs = remoteCdpTimeoutMs;
     }
 
+    public int getNavigationTimeoutMs() {
+      return navigationTimeoutMs;
+    }
+
+    public void setNavigationTimeoutMs(int navigationTimeoutMs) {
+      this.navigationTimeoutMs = navigationTimeoutMs;
+    }
+
     public String getSandboxBridgeUrl() {
       return sandboxBridgeUrl;
     }
+
 
     public void setSandboxBridgeUrl(String sandboxBridgeUrl) {
       this.sandboxBridgeUrl = sandboxBridgeUrl;

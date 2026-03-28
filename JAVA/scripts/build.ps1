@@ -14,9 +14,14 @@ if (Test-Path "frontend") {
   if (-not (Test-Path $StaticDir)) {
     New-Item -ItemType Directory -Force $StaticDir | Out-Null
   }
+  $DistDir = Join-Path $Root "frontend\dist"
+  if (-not (Test-Path $DistDir)) {
+    throw "[ERROR] frontend build output missing: $DistDir"
+  }
   Write-Host "[agentbot] copy frontend assets to $StaticDir"
-  Copy-Item -Path "frontend\dist\*" -Destination $StaticDir -Recurse -Force
+  Copy-Item -Path (Join-Path $DistDir "*") -Destination $StaticDir -Recurse -Force
 }
+
 
 Write-Host "[agentbot] build backend"
 mvn -q -DskipTests package

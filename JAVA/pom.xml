@@ -6,7 +6,7 @@
 
   <groupId>com.agentbot</groupId>
   <artifactId>agentbot</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <name>agentbot</name>
   <description>Agentbot core backend</description>
 

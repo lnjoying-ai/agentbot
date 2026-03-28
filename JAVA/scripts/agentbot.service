@@ -1,0 +1,14 @@
+[Unit]
+Description=agentbot service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/agentbot/JAVA
+Environment=AGENTBOT_CONFIG=/opt/agentbot/JAVA/config/agentbot.yml
+ExecStart=/bin/bash -lc "/opt/agentbot/JAVA/scripts/run.sh"
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

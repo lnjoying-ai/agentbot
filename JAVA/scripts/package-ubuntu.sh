@@ -66,7 +66,7 @@ JPACKAGE_ARGS=(
 HAS_MENU_DIR=false
 for dir in /usr/share/applications /usr/local/share/applications; do
   if [[ -d "$dir" && -w "$dir" ]]; then
-    HAS_MENU_DIR=true
+    HAS_MENU_DIR=false
     break
   fi
 done

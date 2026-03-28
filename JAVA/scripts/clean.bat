@@ -83,5 +83,3 @@ if exist "%BASE_DIR%workspace\sessions" (
 )
 
 echo [INFO] Cleanup completed successfully.
-pause
-

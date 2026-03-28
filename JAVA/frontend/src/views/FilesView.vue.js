@@ -7,19 +7,23 @@ const files = ref([]);
 const loading = ref(false);
 const error = ref(null);
 const lastUpdated = ref(null);
-const selectedNames = ref(new Set());
+const currentPath = ref("");
+const selectedPaths = ref(new Set());
 const baseUrl = () => getApiBaseUrl() || window.location.origin;
-const selectedCount = computed(() => selectedNames.value.size);
-const allSelected = computed(() => files.value.length > 0 && selectedNames.value.size === files.value.length);
+const fileEntries = computed(() => files.value.filter(item => item.type === "file"));
+const selectedCount = computed(() => selectedPaths.value.size);
+const allSelected = computed(() => fileEntries.value.length > 0 && selectedPaths.value.size === fileEntries.value.length);
+const pathSegments = computed(() => currentPath.value ? currentPath.value.split("/").filter(Boolean) : []);
 const fetchFiles = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const res = await fetch(`${baseUrl()}/api/workspace/files`);
+        const query = currentPath.value ? `?path=${encodeURIComponent(currentPath.value)}` : "";
+        const res = await fetch(`${baseUrl()}/api/workspace/files${query}`);
         if (!res.ok)
             throw new Error(await res.text());
         files.value = await res.json();
-        selectedNames.value = new Set();
+        selectedPaths.value = new Set();
         lastUpdated.value = new Date().toLocaleTimeString();
     }
     catch (err) {
@@ -29,37 +33,39 @@ const fetchFiles = async () => {
         loading.value = false;
     }
 };
-const deleteFile = async (file) => {
-    const confirmed = confirm(t("files.deleteConfirm", { name: file.name }));
+const deleteFile = async (entry) => {
+    const confirmed = confirm(t("files.deleteConfirm", { name: entry.name }));
     if (!confirmed)
         return;
     try {
-        const res = await fetch(`${baseUrl()}/api/workspace/files/${encodeURIComponent(file.name)}`, {
+        const res = await fetch(`${baseUrl()}/api/workspace/files?path=${encodeURIComponent(entry.path)}`, {
             method: "DELETE"
         });
         if (!res.ok)
             throw new Error(await res.text());
-        files.value = files.value.filter(item => item.name !== file.name);
-        if (selectedNames.value.has(file.name)) {
-            const next = new Set(selectedNames.value);
-            next.delete(file.name);
-            selectedNames.value = next;
+        files.value = files.value.filter(item => item.path !== entry.path);
+        if (selectedPaths.value.has(entry.path)) {
+            const next = new Set(selectedPaths.value);
+            next.delete(entry.path);
+            selectedPaths.value = next;
         }
     }
     catch (err) {
         error.value = t("files.deleteFailed");
     }
 };
-const downloadFile = async (file) => {
+const downloadFile = async (entry) => {
+    if (entry.type !== "file")
+        return;
     try {
-        const res = await fetch(`${baseUrl()}/api/workspace/files/${encodeURIComponent(file.name)}`);
+        const res = await fetch(`${baseUrl()}/api/workspace/files/download?path=${encodeURIComponent(entry.path)}`);
         if (!res.ok)
             throw new Error(await res.text());
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = file.name;
+        link.download = entry.name;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -69,54 +75,75 @@ const downloadFile = async (file) => {
         error.value = t("files.downloadFailed");
     }
 };
-const toggleSelect = (name) => {
-    const next = new Set(selectedNames.value);
-    if (next.has(name)) {
-        next.delete(name);
+const toggleSelect = (entry) => {
+    if (entry.type !== "file")
+        return;
+    const next = new Set(selectedPaths.value);
+    if (next.has(entry.path)) {
+        next.delete(entry.path);
     }
     else {
-        next.add(name);
+        next.add(entry.path);
     }
-    selectedNames.value = next;
+    selectedPaths.value = next;
 };
 const toggleSelectAll = () => {
     if (allSelected.value) {
-        selectedNames.value = new Set();
+        selectedPaths.value = new Set();
     }
     else {
-        selectedNames.value = new Set(files.value.map(file => file.name));
+        selectedPaths.value = new Set(fileEntries.value.map(file => file.path));
     }
 };
 const bulkDownload = async () => {
-    if (selectedNames.value.size === 0)
+    if (selectedPaths.value.size === 0)
         return;
-    for (const name of selectedNames.value) {
-        const file = files.value.find(item => item.name === name);
+    for (const path of selectedPaths.value) {
+        const file = files.value.find(item => item.path === path);
         if (file)
             await downloadFile(file);
     }
 };
 const bulkDelete = async () => {
-    if (selectedNames.value.size === 0)
+    if (selectedPaths.value.size === 0)
         return;
-    const confirmed = confirm(t("files.bulkDeleteConfirm", { count: selectedNames.value.size }));
+    const confirmed = confirm(t("files.bulkDeleteConfirm", { count: selectedPaths.value.size }));
     if (!confirmed)
         return;
     try {
-        const targets = Array.from(selectedNames.value);
-        for (const name of targets) {
-            const res = await fetch(`${baseUrl()}/api/workspace/files/${encodeURIComponent(name)}`, {
+        const targets = Array.from(selectedPaths.value);
+        for (const path of targets) {
+            const res = await fetch(`${baseUrl()}/api/workspace/files?path=${encodeURIComponent(path)}`, {
                 method: "DELETE"
             });
             if (!res.ok)
                 throw new Error(await res.text());
         }
-        files.value = files.value.filter(item => !selectedNames.value.has(item.name));
-        selectedNames.value = new Set();
+        files.value = files.value.filter(item => !selectedPaths.value.has(item.path));
+        selectedPaths.value = new Set();
     }
     catch (err) {
         error.value = t("files.deleteFailed");
     }
+};
+const openDir = (entry) => {
+    if (entry.type !== "dir")
+        return;
+    currentPath.value = entry.path;
+    fetchFiles();
+};
+const navigateToRoot = () => {
+    if (!currentPath.value)
+        return;
+    currentPath.value = "";
+    fetchFiles();
+};
+const navigateToIndex = (index) => {
+    const next = pathSegments.value.slice(0, index + 1).join("/");
+    if (next === currentPath.value)
+        return;
+    currentPath.value = next;
+    fetchFiles();
 };
 const formatSize = (size) => {
     if (!Number.isFinite(size))
@@ -144,6 +171,7 @@ let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['files-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['file-row']} */ ;
+/** @type {__VLS_StyleScopedClasses['checkbox-cell']} */ ;
 /** @type {__VLS_StyleScopedClasses['checkbox-cell']} */ ;
 /** @type {__VLS_StyleScopedClasses['icon-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['icon-button']} */ ;
@@ -242,6 +270,30 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     disabled: (__VLS_ctx.loading),
 });
 (__VLS_ctx.t("common.refresh"));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+    ...{ class: "path-bar" },
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+    ...{ class: "muted" },
+});
+(__VLS_ctx.t("files.path"));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+    ...{ onClick: (__VLS_ctx.navigateToRoot) },
+    ...{ class: "path-segment" },
+});
+for (const [segment, index] of __VLS_getVForSourceType((__VLS_ctx.pathSegments))) {
+    (segment + index);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "path-separator" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+        ...{ onClick: (...[$event]) => {
+                __VLS_ctx.navigateToIndex(index);
+            } },
+        ...{ class: "path-segment" },
+    });
+    (segment);
+}
 if (__VLS_ctx.loading) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "muted" },
@@ -280,10 +332,10 @@ else {
         ...{ class: "actions" },
     });
     (__VLS_ctx.t("files.actions"));
-    for (const [file] of __VLS_getVForSourceType((__VLS_ctx.files))) {
+    for (const [entry] of __VLS_getVForSourceType((__VLS_ctx.files))) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "file-row" },
-            key: (file.name),
+            key: (entry.path),
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "checkbox-cell" },
@@ -294,59 +346,82 @@ else {
                         return;
                     if (!!(__VLS_ctx.files.length === 0))
                         return;
-                    __VLS_ctx.toggleSelect(file.name);
+                    __VLS_ctx.toggleSelect(entry);
                 } },
             type: "checkbox",
-            checked: (__VLS_ctx.selectedNames.has(file.name)),
-            'aria-label': (file.name),
+            checked: (__VLS_ctx.selectedPaths.has(entry.path)),
+            disabled: (entry.type === 'dir'),
+            'aria-label': (entry.name),
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "file-name" },
         });
-        (file.name);
+        if (entry.type === 'dir') {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!!(__VLS_ctx.loading))
+                            return;
+                        if (!!(__VLS_ctx.files.length === 0))
+                            return;
+                        if (!(entry.type === 'dir'))
+                            return;
+                        __VLS_ctx.openDir(entry);
+                    } },
+                ...{ class: "dir-link" },
+            });
+            (entry.name);
+        }
+        else {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+            (entry.name);
+        }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-        (__VLS_ctx.formatSize(file.size));
+        (__VLS_ctx.formatSize(entry.size));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
-        (__VLS_ctx.formatTime(file.modifiedAt));
+        (__VLS_ctx.formatTime(entry.modifiedAt));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
             ...{ class: "actions" },
         });
+        if (entry.type === 'file') {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!!(__VLS_ctx.loading))
+                            return;
+                        if (!!(__VLS_ctx.files.length === 0))
+                            return;
+                        if (!(entry.type === 'file'))
+                            return;
+                        __VLS_ctx.downloadFile(entry);
+                    } },
+                ...{ class: "icon-button" },
+                title: (__VLS_ctx.t('files.download')),
+                'aria-label': (__VLS_ctx.t('files.download')),
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.svg, __VLS_intrinsicElements.svg)({
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                'stroke-width': "2",
+                'stroke-linecap': "round",
+                'stroke-linejoin': "round",
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+                d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+                d: "M7 10l5 5 5-5",
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+                d: "M12 15V3",
+            });
+        }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
                     if (!!(__VLS_ctx.loading))
                         return;
                     if (!!(__VLS_ctx.files.length === 0))
                         return;
-                    __VLS_ctx.downloadFile(file);
-                } },
-            ...{ class: "icon-button" },
-            title: (__VLS_ctx.t('files.download')),
-            'aria-label': (__VLS_ctx.t('files.download')),
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.svg, __VLS_intrinsicElements.svg)({
-            viewBox: "0 0 24 24",
-            fill: "none",
-            stroke: "currentColor",
-            'stroke-width': "2",
-            'stroke-linecap': "round",
-            'stroke-linejoin': "round",
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-            d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-            d: "M7 10l5 5 5-5",
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-            d: "M12 15V3",
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!!(__VLS_ctx.loading))
-                        return;
-                    if (!!(__VLS_ctx.files.length === 0))
-                        return;
-                    __VLS_ctx.deleteFile(file);
+                    __VLS_ctx.deleteFile(entry);
                 } },
             ...{ class: "icon-button danger" },
             title: (__VLS_ctx.t('common.delete')),
@@ -395,6 +470,11 @@ if (__VLS_ctx.error) {
 /** @type {__VLS_StyleScopedClasses['danger']} */ ;
 /** @type {__VLS_StyleScopedClasses['button']} */ ;
 /** @type {__VLS_StyleScopedClasses['secondary']} */ ;
+/** @type {__VLS_StyleScopedClasses['path-bar']} */ ;
+/** @type {__VLS_StyleScopedClasses['muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['path-segment']} */ ;
+/** @type {__VLS_StyleScopedClasses['path-separator']} */ ;
+/** @type {__VLS_StyleScopedClasses['path-segment']} */ ;
 /** @type {__VLS_StyleScopedClasses['muted']} */ ;
 /** @type {__VLS_StyleScopedClasses['muted']} */ ;
 /** @type {__VLS_StyleScopedClasses['file-table']} */ ;
@@ -405,6 +485,7 @@ if (__VLS_ctx.error) {
 /** @type {__VLS_StyleScopedClasses['file-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['checkbox-cell']} */ ;
 /** @type {__VLS_StyleScopedClasses['file-name']} */ ;
+/** @type {__VLS_StyleScopedClasses['dir-link']} */ ;
 /** @type {__VLS_StyleScopedClasses['actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['icon-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['icon-button']} */ ;
@@ -419,9 +500,10 @@ const __VLS_self = (await import('vue')).defineComponent({
             loading: loading,
             error: error,
             lastUpdated: lastUpdated,
-            selectedNames: selectedNames,
+            selectedPaths: selectedPaths,
             selectedCount: selectedCount,
             allSelected: allSelected,
+            pathSegments: pathSegments,
             fetchFiles: fetchFiles,
             deleteFile: deleteFile,
             downloadFile: downloadFile,
@@ -429,6 +511,9 @@ const __VLS_self = (await import('vue')).defineComponent({
             toggleSelectAll: toggleSelectAll,
             bulkDownload: bulkDownload,
             bulkDelete: bulkDelete,
+            openDir: openDir,
+            navigateToRoot: navigateToRoot,
+            navigateToIndex: navigateToIndex,
             formatSize: formatSize,
             formatTime: formatTime,
         };
